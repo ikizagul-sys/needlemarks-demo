@@ -1,0 +1,6 @@
+{
+  "name": "needlemarks", "version": "0.2.0", "private": true, "type": "module",
+  "description": "NEEDLEMARKS kapsamlı mağaza projesi ve GitHub Pages demosu",
+  "engines": {"node": ">=24.0.0"},
+  "scripts": {"start": "node server/server.mjs", "dev": "node --watch server/server.mjs", "test": "node --test tests/server.test.mjs", "check": "node --check app.js && node --check server/server.mjs && node --check server/store.mjs", "build:demo": "node scripts/build-demo.mjs"}
+}

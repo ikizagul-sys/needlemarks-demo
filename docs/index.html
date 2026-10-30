@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NEEDLEMARKS — Anıların, ilmek ilmek.</title>
+  <meta name="description" content="Fotoğrafından kişiye özel nakış. NEEDLEMARKS tasarım demosunu keşfet.">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="theme-color" content="#181d19">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script src="config.js"></script><script src="app.js" type="module"></script>
+</head>
+<body>
+<svg class="icon-defs" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h15m-6-6 6 6-6 6"/></symbol>
+  <symbol id="i-bag" viewBox="0 0 24 24"><path d="M5 7h14l1 14H4L5 7Z"/><path d="M8 8V6a4 4 0 0 1 8 0v2"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="m5 5 14 14M5 19 19 5"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V3m-5 5 5-5 5 5M4 15v6h16v-6"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M3 7h18M3 17h18"/></symbol>
+  <symbol id="i-thread" viewBox="0 0 48 48"><path d="M10 40 31 5c2-3 6 0 4 3L13 42Zm18-28 5-8M32 9c18-21 20 19 1 14S4 26 7 33"/></symbol>
+</defs></svg>
+<a class="skip-link" href="#mainContent">İçeriğe geç</a><div class="announcement"><span>Küçük bir detay. Kocaman bir anlam.</span><span class="demo-label" id="modeLabel">TASARIM DEMOSU</span></div>
+<header class="header">
+  <a class="brand" href="#/" aria-label="NEEDLEMARKS ana sayfa"><img src="assets/needlemarks-logo.png" alt="NEEDLEMARKS" width="260" height="76"></a>
+  <nav aria-label="Ana menü" id="mainNav"><a href="#/urunler" class="active">Koleksiyonu keşfet</a><a href="#/nasil-calisir">Nasıl çalışır?</a><a href="#/hikayemiz">Hikâyemiz</a></nav>
+  <div class="header-actions"><button class="icon-button" id="searchToggle" aria-label="Ürün ara"><svg><use href="#i-search"/></svg></button><a class="icon-button account-link" href="#/hesabim" aria-label="Hesabım"><span aria-hidden="true">♙</span></a><button class="icon-button" id="favoritesToggle" aria-label="Favorilerim" aria-pressed="false"><svg><use href="#i-heart"/></svg></button><button class="icon-button cart-toggle" aria-label="Sepeti aç"><svg><use href="#i-bag"/></svg><span id="cartCount">0</span></button><button class="icon-button mobile-menu" id="menuToggle" aria-label="Menüyü aç" aria-expanded="false"><svg><use href="#i-menu"/></svg></button></div>
+</header>
+<main id="mainContent" tabindex="-1">
+  <section class="hero" aria-labelledby="heroTitle">
+    <div class="hero-copy"><div class="eyebrow"><span class="tiny-line"></span> FOTOĞRAFTAN NAKIŞA, SANA ÖZEL</div><h1 id="heroTitle">Bazı anılar<br>hep <em>üzerinde</em><br>kalsın.</h1><p>Bir fotoğraf. Bir his. Sadece sana ait bir parça.<br>En sevdiğin anı, ilmek ilmek yanında taşı.</p><a class="button button-dark" href="#koleksiyon">Kendi hikâyeni tasarla <svg><use href="#i-arrow"/></svg></a><div class="hero-note"><svg><use href="#i-thread"/></svg><span>Senin fotoğrafın.<br><strong>Senin hikâyen.</strong></span></div></div>
+    <div class="hero-visual"><img class="hero-image" src="assets/hero.webp" alt="Köpek portresi nakışlı krem sweatshirt ve çift portresi nakışlı yeşil sweatshirt" fetchpriority="high" width="1536" height="1024"><div class="image-tag"><span class="tag-dot"></span> FOTOĞRAFIN, BİR İLMEK UZAĞINDA</div><div class="hero-caption"><span>THE PERSONAL COLLECTION</span><span>01 / 04</span></div></div>
+  </section>
+  <div class="value-strip"><span><svg><use href="#i-thread"/></svg> Her parça, sana özel</span><i></i><span>Fotoğrafından nakış tasarımı</span><i></i><span>Giyilebilir anılar, kalıcı hisler</span></div>
+  <section class="collection section-pad" id="koleksiyon" aria-labelledby="collectionTitle">
+    <div class="section-heading"><div><div class="eyebrow">SENİN KADAR BENZERSİZ</div><h2 id="collectionTitle">Bir parçadan <em>fazlası.</em></h2></div><p>Sevdiğin insanlar, minik dostların, unutamadığın anlar.<br>Hikâyene en çok yakışan parçayı bul.</p></div>
+    <div class="collection-tools"><div class="category-tabs" role="group" aria-label="Ürün kategorileri"><button class="selected" data-category="all">Tüm parçalar <span>4</span></button><button data-category="pet">Minik dostlar</button><button data-category="memories">Özel anılar</button><button data-category="accessories">Aksesuarlar</button></div><label class="sort-label">Sırala <select id="sort" aria-label="Ürün sıralaması"><option value="featured">Öne çıkanlar</option><option value="price-asc">Fiyat: düşükten yükseğe</option><option value="price-desc">Fiyat: yüksekten düşüğe</option></select></label></div>
+    <div class="search-area" id="searchArea" hidden><label for="searchInput">Hikâyendeki parçayı bul</label><div><svg><use href="#i-search"/></svg><input id="searchInput" type="search" placeholder="Sweatshirt, şapka, çanta…"><button id="clearSearch" aria-label="Aramayı temizle">×</button></div></div>
+    <div class="results-line"><span id="resultsCount">4 özel parça</span><span>Her tasarım fotoğrafınla başlar.</span></div>
+    <div class="product-grid" id="productGrid"></div>
+    <div class="empty-results" id="emptyResults" hidden><h3>Henüz bir parça yok.</h3><p>Başka bir arama dene veya tüm koleksiyona göz at.</p><button class="text-link" id="resetFilters">Tüm parçaları göster →</button></div>
+    <p class="catalog-note">Bu koleksiyon bir tasarım demosudur. Görseller yapay zekâ ile üretilmiş örneklerdir; fiyatlar temsilidir.</p>
+  </section>
+  <section class="story-section" id="hikayemiz"><div class="story-image"><img src="assets/tote.webp" alt="Kişiye özel köpek nakışlı kanvas çanta" loading="lazy" width="1122" height="1402"><span class="story-image-note">MADE PERSONAL. MADE TO KEEP.</span></div><div class="story-copy"><div class="eyebrow">NEEDLEMARKS DÜNYASI</div><h2>Bir fotoğraftan,<br><em>bir bağa.</em></h2><p>Bazen tek bir kareye koca bir dünya sığar. Birlikte büyüdüğün dostun, ilk buluşmanız, dönüp dönüp baktığın o an…</p><p>NEEDLEMARKS, o kareyi gündelik hayatının bir parçasına dönüştürme fikriyle tasarlandı. Çünkü en güzel parçalar, bir hikâyesi olanlar.</p><a href="#koleksiyon" class="text-link">Senin hikâyen hangisi? <svg><use href="#i-arrow"/></svg></a></div></section>
+  <section class="how section-pad" id="nasil-calisir"><div class="section-heading"><div><div class="eyebrow">KÜÇÜK BİR BAŞLANGIÇ, ANLAMLI BİR SONUÇ</div><h2>Anından <em>üzerine.</em></h2></div><a href="#koleksiyon" class="text-link">İlk adımı at <svg><use href="#i-arrow"/></svg></a></div><div class="steps"><article><span class="step-number">01</span><h3>Parçanı seç.</h3><p>Hikâyene eşlik edecek sweatshirt, şapka veya çantayı bul.</p></article><article><span class="step-number">02</span><h3>Anını paylaş.</h3><p>Sevdiğin fotoğrafı yükle. Rengini, bedenini ve küçük notunu ekle.</p></article><article><span class="step-number">03</span><h3>Hikâyeni yanında taşı.</h3><p>Fotoğrafının nakşa dönüşeceği kişiye özel parçanı hayal et.</p></article></div></section>
+  <section class="faq section-pad"><div><div class="eyebrow">AKLINDA BİR ŞEY Mİ VAR?</div><h2>Küçük <em>meraklar.</em></h2></div><div class="faq-list"><details><summary>Nasıl bir fotoğraf seçmeliyim?<span>+</span></summary><p>Yüzün veya nakışa dönüşmesini istediğin detayın net göründüğü, aydınlık bir fotoğraf seç. Görsel kalitesi tasarımın detaylarını doğrudan etkiler.</p></details><details><summary>Bu demoda sipariş verebilir miyim?<span>+</span></summary><p>Bu site tasarım ve alışveriş akışını göstermek için hazırlanmıştır. Sepeti deneyebilirsin; gerçek sipariş oluşturulmaz ve ödeme alınmaz.</p></details><details><summary>Yüklediğim fotoğraf nereye gidiyor?<span>+</span></summary><p>Bu demoda fotoğraf yalnızca tarayıcında önizlenir; sunucuya yüklenmez ve kalıcı olarak saklanmaz. Sayfayı yenilediğinde yeniden seçmen gerekir.</p></details></div></section>
+</main>
+<footer><div class="footer-top"><a href="#" class="footer-brand">NEEDLEMARKS<span>Her ilmekte bir hikâye.</span></a><div><a href="#/urunler">Koleksiyon</a><a href="#/hesabim">Hesabım</a><a href="#/siparis-takip">Sipariş takip</a><a href="#/iletisim">İletişim</a><a href="#/admin">Yönetim paneli</a></div><a class="back-top" href="#/">Başa dön ↑</a></div><div class="footer-bottom"><span>© 2026 NEEDLEMARKS · Tasarım demosu</span><span>Sevgiyle seç. Hikâyenle taşı.</span><span>Gerçek ödeme alınmaz.</span></div></footer>
+<dialog id="productDialog" class="product-dialog"><button class="dialog-close icon-button" aria-label="Ürün penceresini kapat"><svg><use href="#i-close"/></svg></button><div id="productContent"></div></dialog>
+<dialog id="cartDialog" class="cart-dialog"><div class="cart-heading"><div class="eyebrow">HİKÂYENE EKLEDİKLERİN</div><button class="dialog-close icon-button" aria-label="Sepeti kapat"><svg><use href="#i-close"/></svg></button></div><h2>Sepetin<span id="cartItemCount"></span></h2><div id="cartItems"></div><div id="cartSummary"></div></dialog>
+<dialog id="checkoutDialog" class="checkout-dialog"><button class="dialog-close icon-button" aria-label="Demo bilgisini kapat"><svg><use href="#i-close"/></svg></button><span class="checkout-icon"><svg><use href="#i-check"/></svg></span><div class="eyebrow">DEMO AKIŞININ SONUNA GELDİN</div><h2>Hikâyen <em>hazır.</em></h2><p>Bu bir tasarım önizlemesidir. Gerçek sipariş oluşturulmadı ve ödeme alınmadı.</p><button class="button button-dark" id="continueShopping">Koleksiyona dön <svg><use href="#i-arrow"/></svg></button></dialog>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
