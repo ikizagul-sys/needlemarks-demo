@@ -4030,3 +4030,218 @@ footer .footer-bottom {
     min-width: 0;
   }
 }
+/* Image-led category management */
+.category-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+}
+.category-card {
+  border: 1px solid #e0e3db;
+  background: #fff;
+  padding: 28px;
+  min-width: 0;
+}
+.category-card-photo {
+  aspect-ratio: 2.3/1;
+  overflow: hidden;
+  background: #f4f5ef;
+}
+.category-card-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.category-photo-placeholder {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: #a4ad98;
+  font-size: 11px;
+}
+.category-photo-placeholder svg {
+  width: 25px;
+  height: 25px;
+}
+.category-card-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  align-items: center;
+  margin: 20px 0 15px;
+  font-size: 10px;
+  color: #a0a795;
+}
+.category-visibility {
+  font-size: 11px;
+  color: #8e9684;
+}
+.category-visibility.active {
+  color: #6e8059;
+}
+.category-card h3 {
+  font: 400 20px/1.4 var(--sans);
+  letter-spacing: -0.025em;
+  margin: 0 0 17px;
+}
+.category-card-slug {
+  font-size: 11px;
+  color: #949d86;
+  overflow-wrap: anywhere;
+  margin-bottom: 20px;
+}
+.category-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 25px;
+}
+.category-card-actions .button {
+  min-height: 43px;
+  font-size: 10px;
+  padding: 11px 17px;
+  border-radius: 0;
+  gap: 9px;
+}
+.category-card-actions svg {
+  width: 16px;
+  height: 16px;
+}
+.category-card-delete {
+  font-size: 10px;
+  color: #a29688;
+}
+.category-page-title .button {
+  gap: 18px;
+  min-height: 55px !important;
+  padding: 16px 25px !important;
+  border-radius: 0;
+}
+.category-page-title .button > span {
+  font-size: 23px;
+  font-weight: 300;
+  line-height: 1;
+}
+.category-manager > [data-category-note] .mode-note {
+  margin: 35px 0 30px;
+}
+.category-manager .category-page-title {
+  margin-top: 16px;
+  margin-bottom: 15px;
+}
+.category-edit-modal {
+  padding: 38px;
+}
+.category-edit-modal h2 {
+  font: 400 30px var(--sans);
+  letter-spacing: -0.04em;
+  margin: 0 0 25px;
+}
+.category-edit-modal form > label:not(.checkbox-line) {
+  display: block;
+  font-size: 11px;
+  margin-bottom: 19px;
+}
+.category-edit-modal input:not([type="checkbox"]):not([type="file"]) {
+  display: block;
+  width: 100%;
+  margin-top: 9px;
+  padding: 11px 12px;
+  border: 1px solid #dce1d3;
+  font: 12px var(--sans);
+  border-radius: 3px;
+}
+.category-edit-cover {
+  margin-bottom: 24px;
+}
+.category-edit-cover #categoryImagePreview {
+  aspect-ratio: 2.3/1;
+  background: #f4f6ef;
+  display: grid;
+  place-items: center;
+  color: #9aa58a;
+  font-size: 11px;
+  overflow: hidden;
+  margin-bottom: 13px;
+}
+.category-edit-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.category-edit-cover .button {
+  display: inline-flex;
+  font-size: 10px;
+  padding: 10px 17px;
+  min-height: 40px;
+  cursor: pointer;
+}
+.category-active-toggle {
+  font-size: 11px;
+}
+.category-active-toggle input {
+  accent-color: var(--forest);
+}
+.category-edit-modal .taxonomy-modal-actions {
+  border-top: 1px solid #e8ebdf;
+  padding-top: 22px;
+}
+.product-dialog:has(.category-edit-modal) {
+  width: 580px;
+}
+.category-manager .taxonomy-empty {
+  grid-column: 1/-1;
+}
+.category-manager .admin-title h2 {
+  font-size: 44px;
+}
+@media (max-width: 1050px) {
+  .category-card {
+    padding: 21px;
+  }
+  .category-card-meta {
+    font-size: 9px;
+  }
+  .category-card h3 {
+    font-size: 19px;
+  }
+}
+@media (max-width: 760px) {
+  .category-card-grid {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+  .category-card {
+    padding: 22px;
+  }
+  .category-manager .admin-title h2 {
+    font-size: 34px;
+  }
+  .category-page-title .button {
+    min-height: 43px !important;
+    padding: 11px 16px !important;
+    gap: 9px;
+    font-size: 10px;
+  }
+  .category-manager > [data-category-note] .mode-note {
+    margin: 25px 0 22px;
+  }
+  .category-edit-modal {
+    padding: 40px 23px 25px;
+  }
+  .category-edit-modal h2 {
+    font-size: 28px;
+  }
+  .category-card h3 {
+    font-size: 20px;
+  }
+  .category-card-photo {
+    aspect-ratio: 2.3/1;
+  }
+  .category-card-meta {
+    font-size: 10px;
+  }
+}

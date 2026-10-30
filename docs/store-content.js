@@ -1,3 +1,4 @@
+import { categorySlug } from "./catalog-rules.js";
 const esc = (value) =>
   String(value ?? "").replace(
     /[&<>"']/g,
@@ -18,7 +19,15 @@ export function siteFooter(settings, categories) {
   const link = (id) => `#/bilgi/${id}`,
     legal = settings.legalPages;
   return `<section class="service-notes" aria-label="Alışveriş bilgileri"><div>${truck}<span><strong>Özenli teslimat</strong><small>Kargo seçenekleri sepetinde</small></span></div><div>${box}<span><strong>Her detayında özen</strong><small>Her ilmekte senin hikâyen</small></span></div><div>${shield}<span><strong>Şeffaf alışveriş</strong><small>Örnek ürünlerle demo mağazası</small></span></div></section>
-  <div class="footer-grid"><div class="footer-intro"><a href="#/" class="footer-wordmark">NEEDLEMARKS</a><p>Senin fotoğrafın. Senin hikâyen.<br>Her ilmekte sana ait bir iz.</p><a class="text-link" href="#/hikayemiz">Hikâyemiz ${arrow}</a></div><div class="footer-column"><h3>Keşfet</h3><a href="#/urunler">Tüm ürünler</a>${categories.map((category) => `<a href="#/kategori/${encodeURIComponent(category.id)}">${esc(category.name)}</a>`).join("")}</div><div class="footer-column"><h3>Yanındayız</h3><a href="#/hesabim">Hesabım & siparişlerim</a><a href="#/iletisim">İletişim</a><a href="${link("kargo")}">${esc(legal.find((page) => page.id === "kargo").title)}</a><a href="${link("iade")}">${esc(legal.find((page) => page.id === "iade").title)}</a><a href="#/sss">Sıkça sorulan sorular</a><a href="#/admin">Yönetim paneli</a></div><div class="footer-column"><h3>Bilmen gerekenler</h3>${legal
+  <div class="footer-grid"><div class="footer-intro"><a href="#/" class="footer-wordmark">NEEDLEMARKS</a><p>Senin fotoğrafın. Senin hikâyen.<br>Her ilmekte sana ait bir iz.</p><a class="text-link" href="#/hikayemiz">Hikâyemiz ${arrow}</a></div><div class="footer-column"><h3>Keşfet</h3><a href="#/urunler">Tüm ürünler</a>${categories
+    .filter((category) => category.active !== false)
+    .map(
+      (category) =>
+        `<a href="#/kategori/${encodeURIComponent(category.slug || categorySlug(category.name))}">${esc(category.name)}</a>`,
+    )
+    .join(
+      "",
+    )}</div><div class="footer-column"><h3>Yanındayız</h3><a href="#/hesabim">Hesabım & siparişlerim</a><a href="#/iletisim">İletişim</a><a href="${link("kargo")}">${esc(legal.find((page) => page.id === "kargo").title)}</a><a href="${link("iade")}">${esc(legal.find((page) => page.id === "iade").title)}</a><a href="#/sss">Sıkça sorulan sorular</a><a href="#/admin">Yönetim paneli</a></div><div class="footer-column"><h3>Bilmen gerekenler</h3>${legal
     .filter((page) => !["kargo", "iade"].includes(page.id))
     .map((page) => `<a href="${link(page.id)}">${esc(page.title)}</a>`)
     .join("")}</div></div>

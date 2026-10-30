@@ -3,6 +3,7 @@ import {
   defaultCategories,
   defaultCollections,
   taxonomyName,
+  categoryDetails,
   productAssignments,
   assertRemovable,
 } from "../catalog-rules.js";
@@ -486,7 +487,15 @@ export function createStore({ directory, seed, adminEmail, adminPassword }) {
     } catch (error) {
       throw new AppError(error.message);
     }
-    const record = { id, name };
+    let record;
+    try {
+      record =
+        data.type === "categories"
+          ? categoryDetails(data, taxonomy(data.type), id)
+          : { id, name };
+    } catch (error) {
+      throw new AppError(error.message);
+    }
     run(
       "INSERT INTO taxonomies VALUES (?,?,?) ON CONFLICT(type,id) DO UPDATE SET body=excluded.body",
       data.type,

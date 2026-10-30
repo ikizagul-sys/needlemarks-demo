@@ -299,3 +299,50 @@ test("banner ve bilgi metni kaydedilir, harici çalıştırılabilir bağlantı 
     /Banner/,
   );
 });
+
+test("kategori fotoğrafı, bağlantı adı ve görünürlük kaydedilir", (t) => {
+  const s = fixture(t),
+    category = s.saveTaxonomy(
+      {
+        type: "categories",
+        name: "Çocuk Ürünleri",
+        slug: "cocuk-urunleri",
+        image: "assets/cap.webp",
+        active: false,
+      },
+      "admin",
+    );
+  const saved = s.taxonomy("categories").find((c) => c.id === category.id);
+  assert.equal(saved.image, "assets/cap.webp");
+  assert.equal(saved.slug, "cocuk-urunleri");
+  assert.equal(saved.active, false);
+  s.saveTaxonomy(
+    { type: "categories", id: category.id, name: "Çocuklara özel" },
+    "admin",
+  );
+  assert.equal(
+    s.taxonomy("categories").find((c) => c.id === category.id).active,
+    false,
+  );
+  assert.throws(
+    () =>
+      s.saveTaxonomy(
+        { type: "categories", name: "Başka kategori", slug: "cocuk-urunleri" },
+        "admin",
+      ),
+    /zaten kullanılıyor/,
+  );
+  assert.throws(
+    () =>
+      s.saveTaxonomy(
+        {
+          type: "categories",
+          id: category.id,
+          name: saved.name,
+          image: "javascript:bad",
+        },
+        "admin",
+      ),
+    /fotoğraf/,
+  );
+});

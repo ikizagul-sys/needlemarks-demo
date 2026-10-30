@@ -11,3 +11,7 @@
 - 12/12 otomatik test başarılı. Yeni testler kategori/koleksiyon ayırımı, yeniden adlandırmada atamaların korunması, kullanılan grubun silinememesi, boş grup silme, geçersiz atama ve banner/bilgi metni kaydını kapsar.
 - 12/12 yeni HTTP kontrolü başarılı: yetkisiz kategori işlemi reddi; ayrı kategori/koleksiyon listeleri; oluşturma ve yeniden adlandırma; kullanılan kategori koruması; banner ve yasal metin kaydı; dört istemci modülünün sunulması.
 - Tarayıcıda kısa formdan taslak ürün oluşturma, kategori/koleksiyon seçimi, yeni kategori ekleme, banner düğmesi ve bilgi metni kaydetme, metnin mağaza sayfasında görünmesi ve alt menüden kategori açma kontrol edildi.
+
+## Görsel kategori kartları
+
+Kategori ekranı iki sütunlu fotoğraflı kartlara dönüştürüldü. Kapak fotoğrafı, ad, bağlantı adı ve aktif/pasif durumu ayrı kategori düzenleme formunda kaydedilir. Pasif kategori mağaza kategori menülerinden gizlenir; ürünler silinmez. 13/13 otomatik test başarılı; kategori görünürlük kaydı tarayıcıda doğrulandı. Kaldığımız nokta PROGRESS.md dosyasına yazıldı.

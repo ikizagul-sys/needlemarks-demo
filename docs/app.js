@@ -1,3 +1,4 @@
+import { categorySlug } from "./catalog-rules.js";
 import {
   siteFooter,
   bannerEditor,
@@ -8,6 +9,7 @@ import {
   productEditor,
   taxonomyPage,
   taxonomyEditor,
+  categoryCover,
 } from "./admin-catalog.js";
 import * as S from "./data.js";
 const $ = (s, r = document) => r.querySelector(s),
@@ -31,7 +33,9 @@ const date = (v) => new Date(v).toLocaleDateString("tr-TR");
 const cats = () => ({
   all: "Tüm parçalar",
   ...Object.fromEntries(
-    S.catalog.categories.map((category) => [category.id, category.name]),
+    S.catalog.categories
+      .filter((category) => category.active !== false)
+      .map((category) => [category.id, category.name]),
   ),
 });
 const statuses = {
@@ -390,6 +394,11 @@ async function adminPage() {
     .join(
       "",
     )}</nav><div class="admin-bottom"><a href="#/">← Mağazaya dön</a><button data-action="logout">Çıkış yap</button>${S.mode === "demo" ? '<button data-action="reset-demo">Demo verilerini sıfırla</button>' : ""}</div></aside><section class="admin-main">${notice()}${content}</section></div>`;
+  const noteSlot = $("[data-category-note]");
+  if (noteSlot) {
+    const note = $(".admin-main>.mode-note");
+    if (note) noteSlot.append(note);
+  }
 }
 function editProduct(id) {
   const p = adminData.products.find((product) => product.id === id) || {
@@ -468,15 +477,25 @@ async function render() {
       await orderPage(decodeURIComponent(parts[1] || ""));
     else if (page === "admin") await adminPage();
     else if (page === "kategori") {
-      filters = {
-        category: decodeURIComponent(parts[1] || ""),
-        search: "",
-        sort: "featured",
-        max: "",
-        size: "",
-        collection: "",
-      };
-      catalogPage();
+      const key = decodeURIComponent(parts[1] || ""),
+        category = S.catalog.categories.find(
+          (record) =>
+            record.active !== false &&
+            (record.id === key ||
+              (record.slug || categorySlug(record.name)) === key),
+        );
+      if (!category) notFound();
+      else {
+        filters = {
+          category: category.id,
+          search: "",
+          sort: "featured",
+          max: "",
+          size: "",
+          collection: "",
+        };
+        catalogPage();
+      }
     } else if (page === "bilgi") {
       const info = S.catalog.settings.legalPages.find(
         (item) => item.id === parts[1],
@@ -593,10 +612,16 @@ document.addEventListener("click", async (event) => {
 
     if (t.dataset.editTaxonomy) {
       const type = t.dataset.taxonomyType;
+      const record = adminData[type].find(
+        (item) => item.id === t.dataset.editTaxonomy,
+      );
+      if (type === "categories")
+        categoryImage = categoryCover(record, adminData.products);
       modal(
         taxonomyEditor(
           type,
           adminData[type].find((item) => item.id === t.dataset.editTaxonomy),
+          adminData.products,
         ),
       );
     }
@@ -667,6 +692,12 @@ document.addEventListener("click", async (event) => {
   }
 });
 document.addEventListener("input", (event) => {
+  if (
+    event.target.id === "categoryName" &&
+    $("#categorySlug")?.dataset.auto === "true"
+  )
+    $("#categorySlug").value = categorySlug(event.target.value);
+  if (event.target.id === "categorySlug") event.target.dataset.auto = "false";
   if (event.target.id === "adminProductSearch") {
     const search = event.target.value.toLocaleLowerCase("tr");
     $$("[data-product-row]").forEach(
@@ -683,6 +714,28 @@ document.addEventListener("change", async (event) => {
     if (event.target.id === "sort") {
       filters.sort = event.target.value;
       grid();
+    }
+    if (event.target.id === "categoryPhoto") {
+      const file = event.target.files[0];
+      if (!file) return;
+      if (
+        file.size > (S.mode === "demo" ? 2 : 5) * 1024 * 1024 ||
+        !["image/jpeg", "image/png", "image/webp"].includes(file.type)
+      )
+        throw new Error(
+          "JPG, PNG veya WebP fotoğraf seç. Demo için en fazla 2 MB.",
+        );
+      const button = $('[data-form="taxonomy"] button[type="submit"]');
+      button.disabled = true;
+      $("#categoryPhotoStatus").textContent = "Fotoğraf yükleniyor…";
+      try {
+        categoryImage = await S.uploadProductPhoto(file);
+        $("#categoryImagePreview").innerHTML =
+          `<img src="${esc(categoryImage)}" alt="Kategori kapak fotoğrafı">`;
+        $("#categoryPhotoStatus").textContent = "Fotoğraf hazır.";
+      } finally {
+        button.disabled = false;
+      }
     }
     if (event.target.id === "bannerPhoto") {
       const file = event.target.files[0];
@@ -888,6 +941,13 @@ document.addEventListener("submit", async (event) => {
         await S.saveTaxonomy(form.dataset.type, {
           id: form.dataset.id || undefined,
           name: data.name,
+          ...(form.dataset.type === "categories"
+            ? {
+                slug: data.slug,
+                image: categoryImage,
+                active: data.active === "on",
+              }
+            : {}),
         });
         closeModal();
         await adminPage();
@@ -978,6 +1038,7 @@ window.addEventListener("hashchange", () => {
 });
 let uploading = false,
   bannerImage,
+  categoryImage,
   selectedLegalPage = "kvkk",
   orderFilter = "";
 await S.refresh();

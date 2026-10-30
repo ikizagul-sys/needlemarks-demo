@@ -1,4 +1,4 @@
-import { assignmentCount } from "./catalog-rules.js";
+import { assignmentCount, categorySlug } from "./catalog-rules.js";
 
 const esc = (value) =>
   String(value ?? "").replace(
@@ -41,6 +41,7 @@ export function taxonomyPage(type, data) {
     title = category ? "Kategoriler" : "Koleksiyonlar",
     singular = category ? "kategori" : "koleksiyon";
   const records = data[type];
+  if (category) return categoryCards(data);
   return `<div class="taxonomy-page"><div class="admin-title"><div><h2>${title}</h2><p>${category ? "Ürünlerini ana gruplara ayır." : "Bir arada sunmak istediğin ürünleri topla."}</p></div><button class="button button-dark" data-taxonomy-type="${type}" data-edit-taxonomy="new">+ ${category ? "Yeni kategori" : "Yeni koleksiyon"}</button></div>
     <section class="taxonomy-list"><div class="taxonomy-list-heading"><span>${category ? "Kategori adı" : "Koleksiyon adı"}</span><span>Ürün</span><span></span></div>${records
       .map((record) => {
@@ -52,7 +53,32 @@ export function taxonomyPage(type, data) {
       )}${records.length ? "" : `<div class="taxonomy-empty"><h3>İlk ${singular} kaydını oluştur.</h3><p>Eklediğin adlar ürün formunda seçilebilir.</p></div>`}</section><p class="taxonomy-footnote">Ürün eklerken hazır listeden seç. Burada yaptığın ad değişiklikleri ürünlere de yansır.</p></div>`;
 }
 
-export function taxonomyEditor(type, record) {
+export function taxonomyEditor(type, record, products = []) {
+  if (type === "categories") return categoryEditor(record, products);
   const singular = type === "categories" ? "kategori" : "koleksiyon";
   return `<div class="taxonomy-modal"><h2>${record ? "Adı düzenle" : `Yeni ${singular}`}</h2><form data-form="taxonomy" data-type="${type}" data-id="${esc(record?.id || "")}"><label>${type === "categories" ? "Kategori adı" : "Koleksiyon adı"}<input name="name" value="${esc(record?.name || "")}" required maxlength="80" placeholder="${type === "categories" ? "Örn. Çocuk ürünleri" : "Örn. Yeni sezon"}" autocomplete="off" autofocus></label><div data-error></div><div class="taxonomy-modal-actions"><button class="button button-outline" type="button" data-action="close-modal">Vazgeç</button><button class="button button-dark" type="submit">Kaydet</button></div></form></div>`;
+}
+
+export function categoryCover(record, products = []) {
+  return (
+    record?.image ||
+    products.find((product) => product.category === record?.id && product.image)
+      ?.image ||
+    ""
+  );
+}
+function categoryCards(data) {
+  return `<div class="category-manager"><div class="admin-title category-page-title"><div><div class="eyebrow">KONTROL SENDE.</div><h2>Kategoriler</h2></div><button class="button button-dark" data-taxonomy-type="categories" data-edit-taxonomy="new"><span aria-hidden="true">＋</span> Yeni ekle</button></div><div data-category-note></div><section class="category-card-grid">${data.categories
+    .map((record) => {
+      const image = categoryCover(record, data.products),
+        count = assignmentCount(data.products, "categories", record.id);
+      return `<article class="category-card"><div class="category-card-photo">${image ? `<img src="${esc(image)}" alt="${esc(record.name)}" loading="lazy">` : '<div class="category-photo-placeholder"><svg aria-hidden="true"><use href="#i-upload"/></svg><span>Henüz fotoğraf eklenmedi</span></div>'}</div><div class="category-card-meta"><span class="category-visibility ${record.active === false ? "inactive" : "active"}">${record.active === false ? "Kategori pasif" : "Kategori aktif"}</span><span>${count} ürün</span></div><h3>${esc(record.name)}</h3><p class="category-card-slug">${esc(record.slug || categorySlug(record.name))}</p><div class="category-card-actions"><button class="button button-outline" data-taxonomy-type="categories" data-edit-taxonomy="${esc(record.id)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 4 5 5M3 21l5-1L21 7a2.8 2.8 0 0 0-4-4L4 16l-1 5Z"/></svg>Düzenle</button>${count === 0 ? `<button class="subtle-link category-card-delete" data-taxonomy-type="categories" data-remove-taxonomy="${esc(record.id)}">Sil</button>` : ""}</div></article>`;
+    })
+    .join(
+      "",
+    )}${data.categories.length ? "" : '<div class="taxonomy-empty"><h3>İlk kategorini ekle.</h3><p>Bir ad ve kapak fotoğrafıyla başlayabilirsin.</p></div>'}</section></div>`;
+}
+function categoryEditor(record, products) {
+  const image = categoryCover(record, products);
+  return `<div class="category-edit-modal"><h2>${record ? "Kategoriyi düzenle" : "Yeni kategori"}</h2><form data-form="taxonomy" data-type="categories" data-id="${esc(record?.id || "")}"><div class="category-edit-cover"><div id="categoryImagePreview">${image ? `<img src="${esc(image)}" alt="Kategori kapak fotoğrafı">` : "<span>Kapak fotoğrafı</span>"}</div><label class="button button-outline" for="categoryPhoto">${image ? "Fotoğrafı değiştir" : "Fotoğraf ekle"}</label><input class="visually-hidden" id="categoryPhoto" type="file" accept="image/jpeg,image/png,image/webp"><span id="categoryPhotoStatus" class="photo-upload-status" role="status"></span></div><label>Kategori adı<input name="name" id="categoryName" value="${esc(record?.name || "")}" required maxlength="80" placeholder="Örn. Çocuk ürünleri" autocomplete="off" autofocus></label><label>Bağlantı adı<input name="slug" id="categorySlug" value="${esc(record?.slug || categorySlug(record?.name))}" data-auto="${record ? "false" : "true"}" required maxlength="100" pattern="[a-z0-9]+(-[a-z0-9]+)*" placeholder="cocuk-urunleri"></label><label class="checkbox-line category-active-toggle"><input name="active" type="checkbox" ${record?.active === false ? "" : "checked"}> Mağazada göster</label><p class="field-hint">Pasif kategoriler mağaza menüsünde görünmez. Ürünler korunur.</p><div data-error></div><div class="taxonomy-modal-actions"><button class="button button-outline" type="button" data-action="close-modal">Vazgeç</button><button class="button button-dark" type="submit">Kaydet</button></div></form></div>`;
 }

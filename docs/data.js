@@ -3,6 +3,7 @@ import {
   defaultCategories,
   defaultCollections,
   taxonomyName,
+  categoryDetails,
   productAssignments,
   assertRemovable,
 } from "./catalog-rules.js";
@@ -355,9 +356,13 @@ export async function saveTaxonomy(type, record) {
   }
   const id = record.id || uid(),
     name = taxonomyName(record.name, catalog[type], id);
+  const updated =
+    type === "categories"
+      ? categoryDetails(record, catalog[type], id, true)
+      : { id, name };
   const next = catalog[type].some((item) => item.id === id)
-    ? catalog[type].map((item) => (item.id === id ? { id, name } : item))
-    : [...catalog[type], { id, name }];
+    ? catalog[type].map((item) => (item.id === id ? updated : item))
+    : [...catalog[type], updated];
   write(type, next);
   catalog[type] = next;
 }
