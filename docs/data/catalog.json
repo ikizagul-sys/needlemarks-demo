@@ -1,10 +1,187 @@
 {
   "products": [
-    {"id":"lucky","slug":"pet-portre-sweatshirt","name":"En yakın dostun, hep yanında.","category":"pet","type":"Sweatshirt","kind":"Kişiye özel pet nakışı","price":189000,"stock":24,"image":"assets/hero.webp","badge":"SENİN FOTOĞRAFINLA","colors":["Krem","Yeşil","Siyah"],"sizes":["S","M","L","XL"],"swatches":["#e1d7bd","#3b4e3a","#292d28"],"description":"En sevdiğin dostunun portresini taşıyan, sana özel tasarlanmış yumuşak dokulu sweatshirt. Net bir fotoğrafını seç, ismini ekle ve hikâyeni tamamla.","material":"Pamuk ağırlıklı yumuşak sweatshirt kumaşı · Örnek ürün bilgisi","care":"Ters çevirerek 30°C hassas programda yıka. Nakış üzerine doğrudan ütü uygulama.","published":true,"featured":true},
-    {"id":"together","slug":"cift-portre-sweatshirt","name":"İkinizin hikâyesi, tek bir parça.","category":"memories","type":"Sweatshirt","kind":"Kişiye özel çift nakışı","price":209000,"stock":18,"image":"assets/sweatshirt.webp","badge":"BİRLİKTE DAHA GÜZEL","colors":["Yeşil","Krem","Siyah"],"sizes":["S","M","L","XL"],"swatches":["#3b4e3a","#e1d7bd","#292d28"],"description":"Birlikte olduğunuz o özel kareden ilham alan çizgisel nakış. İlk buluşma, yıldönümü veya sıradan bir günün en güzel anısı.","material":"Pamuk ağırlıklı sweatshirt kumaşı · Örnek ürün bilgisi","care":"Ters çevirerek 30°C hassas programda yıka. Sererek kurut.","published":true,"featured":true},
-    {"id":"tote","slug":"pet-nakisli-kanvas-canta","name":"Minik dostun, tüm yolculuklarında.","category":"accessories","tags":["pet"],"type":"Çanta","kind":"Nakışlı kanvas çanta","price":129000,"stock":32,"image":"assets/tote.webp","badge":"GÜNLÜK FAVORİN","colors":["Doğal"],"sizes":["Standart"],"swatches":["#d8cfb9"],"description":"Günün her anına eşlik eden kanvas çanta; üzerinde en sevdiğin dostunun kişisel nakış portresiyle. Kahve molalarından hafta sonu kaçamaklarına.","material":"Doğal renk kanvas · Örnek ölçü: 35 × 40 cm","care":"Lokal temizleme önerilir. Ağartıcı kullanma.","published":true,"featured":true},
-    {"id":"cap","slug":"kedi-portre-nakisli-sapka","name":"Küçük bir detay, kocaman bir bağ.","category":"accessories","tags":["pet"],"type":"Şapka","kind":"Kişiye özel nakışlı şapka","price":119000,"stock":20,"image":"assets/cap.webp","badge":"TAM SANA GÖRE","colors":["Bej","Siyah"],"sizes":["Ayarlanabilir"],"swatches":["#d5c3a3","#292d28"],"description":"Sadece sana ait bir detay. Fotoğrafından ilham alan minik nakışla tamamlanan pamuklu şapka. Arkadan ayarlanabilir kalıpla günlük kullanım.","material":"Pamuklu gabardin · Ayarlanabilir arka bant · Örnek ürün bilgisi","care":"Elde, soğuk suyla nazikçe temizle. Makinede yıkama.","published":true,"featured":true}
+    {
+      "id": "lucky",
+      "slug": "pet-portre-sweatshirt",
+      "name": "En yakın dostun, hep yanında.",
+      "category": "pet",
+      "type": "Sweatshirt",
+      "kind": "Kişiye özel pet nakışı",
+      "price": 189000,
+      "stock": 24,
+      "image": "assets/hero.webp",
+      "badge": "SENİN FOTOĞRAFINLA",
+      "colors": [
+        "Krem",
+        "Yeşil",
+        "Siyah"
+      ],
+      "sizes": [
+        "S",
+        "M",
+        "L",
+        "XL"
+      ],
+      "swatches": [
+        "#e1d7bd",
+        "#3b4e3a",
+        "#292d28"
+      ],
+      "description": "En sevdiğin dostunun portresini taşıyan, sana özel tasarlanmış yumuşak dokulu sweatshirt. Net bir fotoğrafını seç, ismini ekle ve hikâyeni tamamla.",
+      "material": "Pamuk ağırlıklı yumuşak sweatshirt kumaşı · Örnek ürün bilgisi",
+      "care": "Ters çevirerek 30°C hassas programda yıka. Nakış üzerine doğrudan ütü uygulama.",
+      "published": true,
+      "featured": true,
+      "collections": [
+        "personal"
+      ]
+    },
+    {
+      "id": "together",
+      "slug": "cift-portre-sweatshirt",
+      "name": "İkinizin hikâyesi, tek bir parça.",
+      "category": "memories",
+      "type": "Sweatshirt",
+      "kind": "Kişiye özel çift nakışı",
+      "price": 209000,
+      "stock": 18,
+      "image": "assets/sweatshirt.webp",
+      "badge": "BİRLİKTE DAHA GÜZEL",
+      "colors": [
+        "Yeşil",
+        "Krem",
+        "Siyah"
+      ],
+      "sizes": [
+        "S",
+        "M",
+        "L",
+        "XL"
+      ],
+      "swatches": [
+        "#3b4e3a",
+        "#e1d7bd",
+        "#292d28"
+      ],
+      "description": "Birlikte olduğunuz o özel kareden ilham alan çizgisel nakış. İlk buluşma, yıldönümü veya sıradan bir günün en güzel anısı.",
+      "material": "Pamuk ağırlıklı sweatshirt kumaşı · Örnek ürün bilgisi",
+      "care": "Ters çevirerek 30°C hassas programda yıka. Sererek kurut.",
+      "published": true,
+      "featured": true,
+      "collections": [
+        "personal",
+        "gifts"
+      ]
+    },
+    {
+      "id": "tote",
+      "slug": "pet-nakisli-kanvas-canta",
+      "name": "Minik dostun, tüm yolculuklarında.",
+      "category": "accessories",
+      "tags": [
+        "pet"
+      ],
+      "type": "Çanta",
+      "kind": "Nakışlı kanvas çanta",
+      "price": 129000,
+      "stock": 32,
+      "image": "assets/tote.webp",
+      "badge": "GÜNLÜK FAVORİN",
+      "colors": [
+        "Doğal"
+      ],
+      "sizes": [
+        "Standart"
+      ],
+      "swatches": [
+        "#d8cfb9"
+      ],
+      "description": "Günün her anına eşlik eden kanvas çanta; üzerinde en sevdiğin dostunun kişisel nakış portresiyle. Kahve molalarından hafta sonu kaçamaklarına.",
+      "material": "Doğal renk kanvas · Örnek ölçü: 35 × 40 cm",
+      "care": "Lokal temizleme önerilir. Ağartıcı kullanma.",
+      "published": true,
+      "featured": true,
+      "collections": [
+        "personal"
+      ]
+    },
+    {
+      "id": "cap",
+      "slug": "kedi-portre-nakisli-sapka",
+      "name": "Küçük bir detay, kocaman bir bağ.",
+      "category": "accessories",
+      "tags": [
+        "pet"
+      ],
+      "type": "Şapka",
+      "kind": "Kişiye özel nakışlı şapka",
+      "price": 119000,
+      "stock": 20,
+      "image": "assets/cap.webp",
+      "badge": "TAM SANA GÖRE",
+      "colors": [
+        "Bej",
+        "Siyah"
+      ],
+      "sizes": [
+        "Ayarlanabilir"
+      ],
+      "swatches": [
+        "#d5c3a3",
+        "#292d28"
+      ],
+      "description": "Sadece sana ait bir detay. Fotoğrafından ilham alan minik nakışla tamamlanan pamuklu şapka. Arkadan ayarlanabilir kalıpla günlük kullanım.",
+      "material": "Pamuklu gabardin · Ayarlanabilir arka bant · Örnek ürün bilgisi",
+      "care": "Elde, soğuk suyla nazikçe temizle. Makinede yıkama.",
+      "published": true,
+      "featured": true,
+      "collections": [
+        "personal",
+        "gifts"
+      ]
+    }
   ],
-  "settings": {"brand":"NEEDLEMARKS","announcement":"Küçük bir detay. Kocaman bir anlam.","shippingFee":9900,"freeShippingThreshold":250000,"supportEmail":"","preparationDays":"5–7 iş günü","about":"NEEDLEMARKS, sevdiğin bir fotoğrafı gündelik hayatının bir parçasına dönüştürme fikriyle tasarlandı. Her ilmekte bir hikâye."},
-  "coupons": [{"code":"ILKILMEK10","percent":10,"minimum":150000,"active":true,"usageLimit":100,"used":0}]
+  "settings": {
+    "brand": "NEEDLEMARKS",
+    "announcement": "Küçük bir detay. Kocaman bir anlam.",
+    "shippingFee": 9900,
+    "freeShippingThreshold": 250000,
+    "supportEmail": "",
+    "preparationDays": "5–7 iş günü",
+    "about": "NEEDLEMARKS, sevdiğin bir fotoğrafı gündelik hayatının bir parçasına dönüştürme fikriyle tasarlandı. Her ilmekte bir hikâye."
+  },
+  "coupons": [
+    {
+      "code": "ILKILMEK10",
+      "percent": 10,
+      "minimum": 150000,
+      "active": true,
+      "usageLimit": 100,
+      "used": 0
+    }
+  ],
+  "categories": [
+    {
+      "id": "pet",
+      "name": "Minik dostlar"
+    },
+    {
+      "id": "memories",
+      "name": "Özel anılar"
+    },
+    {
+      "id": "accessories",
+      "name": "Aksesuarlar"
+    }
+  ],
+  "collections": [
+    {
+      "id": "personal",
+      "name": "Kişiye özel"
+    },
+    {
+      "id": "gifts",
+      "name": "Hediye fikirleri"
+    }
+  ]
 }

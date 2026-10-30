@@ -89,3 +89,11 @@ node --check server/store.mjs
 Bu bir müşteri demosu ve yerel geliştirme temelidir. Gerçek katalog/ölçüler/fiyatlar, şirket bilgileri ve ticari metinler, ödeme sağlayıcısı, kargo, e-posta/parola sıfırlama, faturalama, sunucu/HTTPS, yedekleme/geri yükleme ve üretim güvenlik kabulü henüz bağlanmadı. Sipariş listesi 500 kayıtla sınırlıdır; büyük operasyon için sayfalama ve raporlama gerekir. Theseart'ın kodu kopyalanmadı; NEEDLEMARKS için yeni Node.js/SQLite temeli hazırlandı.
 
 Logo kullanıcı tarafından sağlandı. Dört görsel yerleşik Imagegen ile demo için üretildi; gerçek ürün fotoğrafı değildir. Rakibin ürün görselleri kullanılmadı. Briefler IMAGE-PROMPTS.md içindedir. Google Fonts kullanılamazsa Arial/Georgia yedekleri devreye girer.
+
+## Ürün ve içerik yönetimi güncellemesi
+
+Ürün formu temel bilgiler, fotoğraflar ve kategori/koleksiyon seçimiyle sadeleştirildi. Renk, beden ve bakım alanları kapalı Ek bilgiler bölümündedir. Taslak kaydet ve Ürünü yayınla ayrı düğmelerdir.
+
+Koleksiyonlar ve Kategoriler ayrı menülerden eklenir/düzenlenir. Ürün formunda bir kategori ve isteğe bağlı birden fazla koleksiyon seçilir. Kullanılan bir grubu silmek için önce ürünleri başka gruba taşımak gerekir. Ad değişiklikleri ürün bağlarını korur. Mağaza ve alt menü kategorileri aynı kayıtları kullanır.
+
+Bannerlar bölümünde ana sayfa başlığı, açıklama, buton, görsel ve görünürlük; Kargo & duyuru bölümünde kargo tutarı/eşiği ve duyuru; Yasal metinler bölümünde bilgi sayfalarının başlığı ve metni düzenlenir. Footer Keşfet, Yanındayız ve Bilmen gerekenler olarak gruplandı. Başlangıç bilgi metinleri demo taslağıdır.

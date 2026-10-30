@@ -1,0 +1,58 @@
+import { assignmentCount } from "./catalog-rules.js";
+
+const esc = (value) =>
+  String(value ?? "").replace(
+    /[&<>"']/g,
+    (character) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
+        character
+      ],
+  );
+const uploadIcon = '<svg aria-hidden="true"><use href="#i-upload"/></svg>';
+
+export function productEditor(product, categories, collections, demo) {
+  return `<div class="catalog-editor">
+    <div class="catalog-editor-heading"><div><button type="button" class="editor-back" data-admin-tab="products">← Ürünler</button><h1>${product.id ? "Ürünü düzenle" : "Yeni ürün"}</h1></div><span class="status-pill">${product.published ? "Yayında" : "Taslak"}</span></div>
+    <form data-form="product-admin" data-id="${esc(product.id)}" class="simple-product-form">
+      <div class="product-form-main">
+        <section class="editor-card"><h2>Ürün bilgileri</h2>
+          <label>Ürün adı <span class="required-mark">*</span><input name="name" value="${esc(product.name)}" required maxlength="140" placeholder="Örn. Kişiye özel nakışlı sweatshirt" autocomplete="off"></label>
+          <div class="form-grid"><label>Fiyat (₺) <span class="required-mark">*</span><input name="price" type="number" value="${product.price ? product.price / 100 : ""}" min="0.01" max="1000000" step="0.01" required placeholder="0,00"></label><label>Stok adedi <span class="required-mark">*</span><input name="stock" type="number" value="${product.stock ?? 0}" min="0" max="100000" required></label></div>
+          <label>Açıklama <span class="optional-label">İsteğe bağlı</span><textarea name="description" maxlength="3000" rows="3" placeholder="Müşterinin ürün hakkında bilmesi gerekenler…">${esc(product.description)}</textarea></label>
+        </section>
+        <section class="editor-card photo-card"><div class="editor-card-heading"><h2>Fotoğraflar</h2><span id="photoCount">0 / 8</span></div>
+          <label class="product-dropzone" data-product-dropzone for="productPhotos">${uploadIcon}<strong>Fotoğrafları buraya bırak</strong><span>veya <u>dosya seç</u></span><small>JPG, PNG veya WebP · En fazla 8 fotoğraf</small></label>
+          <input class="visually-hidden" id="productPhotos" type="file" multiple accept="image/png,image/jpeg,image/webp">
+          <div id="photoUploadStatus" class="photo-upload-status" role="status"></div><div id="editorGallery" class="editor-gallery"></div>
+          <div class="photo-card-footer"><span>İlk fotoğraf ürünün kapak görselidir.</span>${demo ? '<button type="button" class="subtle-link" data-action="sample-photo">Demo fotoğrafı kullan</button>' : ""}</div>
+        </section>
+        <details class="editor-card extra-product-info"><summary><span>Ek bilgiler</span><small>Renk, beden ve bakım bilgileri</small><span class="details-chevron">⌄</span></summary><div class="extra-product-fields"><div class="form-grid"><label>Renkler<input name="colors" value="${esc(product.colors.join(", "))}" maxlength="300" placeholder="Örn. Krem, Siyah"><small>Birden fazla seçenek için virgül kullan.</small></label><label>Bedenler<input name="sizes" value="${esc(product.sizes.join(", "))}" maxlength="300" placeholder="Örn. S, M, L"></label></div><label>Malzeme<input name="material" value="${esc(product.material)}" maxlength="600"></label><label>Bakım önerisi<input name="care" value="${esc(product.care)}" maxlength="600"></label></div></details>
+      </div>
+      <aside class="product-form-side"><section class="editor-card"><h2>Ürün düzeni</h2><label>Kategori <span class="required-mark">*</span><select name="category" required><option value="">Kategori seç</option>${categories.map((category) => `<option value="${esc(category.id)}" ${category.id === product.category ? "selected" : ""}>${esc(category.name)}</option>`).join("")}</select></label>
+        <fieldset class="collection-choices"><legend>Koleksiyonlar <span class="optional-label">İsteğe bağlı</span></legend>${collections.length ? collections.map((collection) => `<label><input name="collections" type="checkbox" value="${esc(collection.id)}" ${product.collections?.includes(collection.id) ? "checked" : ""}><span>${esc(collection.name)}</span></label>`).join("") : "<p>Henüz koleksiyon eklenmedi.</p>"}</fieldset>
+        <p class="organization-hint">Kategori ve koleksiyon adlarını sol menüdeki kendi bölümlerinden yönetebilirsin.</p></section>
+      </aside>
+      <div class="product-save-bar"><div data-error></div><span class="save-hint">Yayınladığın ürün mağazada görünür.</span><div><button type="submit" name="saveState" value="draft" class="button button-outline">Taslak kaydet</button><button type="submit" name="saveState" value="publish" class="button button-dark">${product.published ? "Değişiklikleri kaydet" : "Ürünü yayınla"}</button></div></div>
+    </form></div>`;
+}
+
+export function taxonomyPage(type, data) {
+  const category = type === "categories",
+    title = category ? "Kategoriler" : "Koleksiyonlar",
+    singular = category ? "kategori" : "koleksiyon";
+  const records = data[type];
+  return `<div class="taxonomy-page"><div class="admin-title"><div><h2>${title}</h2><p>${category ? "Ürünlerini ana gruplara ayır." : "Bir arada sunmak istediğin ürünleri topla."}</p></div><button class="button button-dark" data-taxonomy-type="${type}" data-edit-taxonomy="new">+ ${category ? "Yeni kategori" : "Yeni koleksiyon"}</button></div>
+    <section class="taxonomy-list"><div class="taxonomy-list-heading"><span>${category ? "Kategori adı" : "Koleksiyon adı"}</span><span>Ürün</span><span></span></div>${records
+      .map((record) => {
+        const count = assignmentCount(data.products, type, record.id);
+        return `<div class="taxonomy-row"><div><span class="taxonomy-symbol">${category ? "▦" : "▧"}</span><strong>${esc(record.name)}</strong></div><span class="taxonomy-count">${count} ürün</span><div class="taxonomy-actions"><button data-taxonomy-type="${type}" data-edit-taxonomy="${esc(record.id)}">Düzenle</button>${count === 0 ? `<button class="taxonomy-remove" data-taxonomy-type="${type}" data-remove-taxonomy="${esc(record.id)}" aria-label="${esc(record.name)} ${singular} kaydını sil">Sil</button>` : ""}</div></div>`;
+      })
+      .join(
+        "",
+      )}${records.length ? "" : `<div class="taxonomy-empty"><h3>İlk ${singular} kaydını oluştur.</h3><p>Eklediğin adlar ürün formunda seçilebilir.</p></div>`}</section><p class="taxonomy-footnote">Ürün eklerken hazır listeden seç. Burada yaptığın ad değişiklikleri ürünlere de yansır.</p></div>`;
+}
+
+export function taxonomyEditor(type, record) {
+  const singular = type === "categories" ? "kategori" : "koleksiyon";
+  return `<div class="taxonomy-modal"><h2>${record ? "Adı düzenle" : `Yeni ${singular}`}</h2><form data-form="taxonomy" data-type="${type}" data-id="${esc(record?.id || "")}"><label>${type === "categories" ? "Kategori adı" : "Koleksiyon adı"}<input name="name" value="${esc(record?.name || "")}" required maxlength="80" placeholder="${type === "categories" ? "Örn. Çocuk ürünleri" : "Örn. Yeni sezon"}" autocomplete="off" autofocus></label><div data-error></div><div class="taxonomy-modal-actions"><button class="button button-outline" type="button" data-action="close-modal">Vazgeç</button><button class="button button-dark" type="submit">Kaydet</button></div></form></div>`;
+}

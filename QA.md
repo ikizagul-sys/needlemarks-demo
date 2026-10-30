@@ -5,3 +5,9 @@
 - Tarayıcı: ürün kişiselleştirme → sepet → kupon → teslimat → demo siparişi → kaydın yönetim panelinde görünmesi. 1.890 TL ürün - %10 indirim + 99 TL kargo = 1.800 TL doğrulandı.
 - Yönetim paneli, ürün listesi/düzenleyici ve mobil düzen görsel olarak kontrol edildi.
 - Gerçek ödeme, kargo, e-posta, nakış dönüştürme ve üretim ortamı testi yapılmadı; bunlar bağlı değildir.
+
+## 30 Ekim 2026 — Sade yönetim ve içerik sayfaları
+
+- 12/12 otomatik test başarılı. Yeni testler kategori/koleksiyon ayırımı, yeniden adlandırmada atamaların korunması, kullanılan grubun silinememesi, boş grup silme, geçersiz atama ve banner/bilgi metni kaydını kapsar.
+- 12/12 yeni HTTP kontrolü başarılı: yetkisiz kategori işlemi reddi; ayrı kategori/koleksiyon listeleri; oluşturma ve yeniden adlandırma; kullanılan kategori koruması; banner ve yasal metin kaydı; dört istemci modülünün sunulması.
+- Tarayıcıda kısa formdan taslak ürün oluşturma, kategori/koleksiyon seçimi, yeni kategori ekleme, banner düğmesi ve bilgi metni kaydetme, metnin mağaza sayfasında görünmesi ve alt menüden kategori açma kontrol edildi.

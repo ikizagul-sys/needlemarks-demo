@@ -1,21 +1,301 @@
-import test from 'node:test';
-import assert from 'node:assert/strict';
-import {mkdtempSync,readFileSync,rmSync} from 'node:fs';
-import {tmpdir} from 'node:os';
-import {join,resolve,basename,sep} from 'node:path';
-import {randomUUID} from 'node:crypto';
-import {createStore} from '../server/store.mjs';
-const seed=JSON.parse(readFileSync(new URL('../data/catalog.json',import.meta.url),'utf8'));
-function fixture(t){const directory=mkdtempSync(join(tmpdir(),'needlemarks-test-'));const store=createStore({directory,seed,adminEmail:'admin@example.com',adminPassword:'Test-only-admin-8492'});t.after(()=>{store.close();const path=resolve(directory);assert.ok(path.startsWith(resolve(tmpdir())+sep)&&basename(path).startsWith('needlemarks-test-'));rmSync(path,{recursive:true,force:true});});return store;}
-const item={id:'lucky',quantity:1,color:'Krem',size:'M',note:'Milo'};
-const customer={name:'Deniz Örnek',email:'deniz@example.com',phone:'05550000000',city:'İstanbul',district:'Kadıköy',address:'Örnek mahalle, örnek sokak 12'};
-const order=(key=randomUUID())=>({idempotencyKey:key,items:[{...item,price:1}],coupon:'ILKILMEK10',customer,consent:true});
-test('hesap parolası özetlenir, rol istemciden yükseltilemez, çıkış oturumu iptal eder',t=>{const s=fixture(t);const result=s.register({name:'Deniz Örnek',email:'user@example.com',password:'Sample-customer-8492',role:'admin'});assert.equal(result.user.role,'customer');assert.equal(s.session(result.token).email,'user@example.com');const row=s.db.prepare('SELECT password FROM users WHERE email=?').get('user@example.com');assert.notEqual(row.password,'Sample-customer-8492');s.logout(result.token);assert.equal(s.session(result.token),null);assert.throws(()=>s.authenticate('user@example.com','wrong','test-ip'),/hatalı/);});
-test('tekrarlanan başarısız girişler sınırlandırılır',t=>{const s=fixture(t);for(let i=0;i<8;i++)assert.throws(()=>s.authenticate('admin@example.com','wrong','test-ip'));assert.throws(()=>s.authenticate('admin@example.com','Test-only-admin-8492','test-ip'),/Çok fazla/);});
-test('fiyat istemciden alınmaz, kupon ve kargo kuruşla hesaplanır',t=>{const s=fixture(t),q=s.calculate(order(),'guest-a');assert.equal(q.subtotal,189000);assert.equal(q.discount,18900);assert.equal(q.shipping,9900);assert.equal(q.total,180000);assert.throws(()=>s.calculate({...order(),coupon:'BAD'},'guest-a'),/Kupon/);assert.throws(()=>s.calculate({...order(),items:[{...item,color:'invalid'}]},'guest-a'),/Renk/);});
-test('aynı ürüne ait satırlar birlikte stok sınırına tabidir',t=>{const s=fixture(t);assert.throws(()=>s.calculate({items:[{...item,quantity:20},{...item,quantity:20}]},'guest-a'),/yeterli stok/);assert.throws(()=>s.calculate({items:[{...item,quantity:-1}]},'guest-a'),/Geçersiz sayı/);});
-test('sipariş atomik, idempotent ve başka oturuma kapalıdır',t=>{const s=fixture(t),payload=order();const first=s.createOrder(payload,null,'guest-a');const again=s.createOrder(payload,null,'guest-a');assert.equal(first.id,again.id);assert.equal(s.products().find(p=>p.id==='lucky').stock,23);assert.equal(s.coupons()[0].used,1);assert.equal(s.orders(null,'guest-b').length,0);assert.equal(s.orders(null,'guest-a').length,1);assert.throws(()=>s.createOrder(payload,null,'guest-b'),/erişimi reddedildi/);});
-test('son stokta ikinci sipariş başarısız olur ve kupon kullanımı artmaz',t=>{const s=fixture(t);const p=s.products().find(p=>p.id==='lucky');s.saveProduct({...p,stock:1},'admin');s.createOrder(order(),null,'guest-a');assert.throws(()=>s.createOrder(order(),null,'guest-b'),/yeterli stok/);assert.equal(s.coupons()[0].used,1);assert.equal(s.products().find(p=>p.id==='lucky').stock,0);});
-test('sipariş tutarı ürün değişse veya taslağa alınsa da korunur',t=>{const s=fixture(t),o=s.createOrder(order(),null,'guest-a');const p=s.products().find(p=>p.id==='lucky');s.saveProduct({...p,price:999000,published:false},'admin');const saved=s.orders(null,'guest-a')[0];assert.equal(saved.total,o.total);assert.equal(saved.items[0].price,189000);assert.equal(s.products().some(p=>p.id==='lucky'),false);assert.equal(s.products(true).some(p=>p.id==='lucky'),true);});
-test('fotoğrafa sahiplik ve sipariş durumuna izin verilen değerler denetlenir',t=>{const s=fixture(t);s.addUpload('photo-one','guest-a','photo.png','image/png');assert.throws(()=>s.calculate({items:[{...item,uploadId:'photo-one'}]},'guest-b'),/oturuma ait değil/);const o=s.createOrder(order(),null,'guest-a');assert.throws(()=>s.updateOrder(o.id,'paid','admin'),/Geçersiz/);s.updateOrder(o.id,'designing','admin');assert.equal(s.orders(null,'guest-a')[0].status,'designing');});
-test('kupon kullanım limiti ve minimum tutar korunur',t=>{const s=fixture(t);s.saveCoupon({code:'ONE',percent:20,minimum:150000,usageLimit:1,active:true},'admin');s.createOrder({...order(),coupon:'ONE'},null,'guest-a');assert.throws(()=>s.createOrder({...order(),coupon:'ONE'},null,'guest-b'),/Kupon/);assert.throws(()=>s.saveCoupon({code:'BAD',percent:99,minimum:0,usageLimit:10,active:true},'admin'),/Geçersiz sayı/);});
+import test from "node:test";
+import assert from "node:assert/strict";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve, basename, sep } from "node:path";
+import { randomUUID } from "node:crypto";
+import { createStore } from "../server/store.mjs";
+const seed = JSON.parse(
+  readFileSync(new URL("../data/catalog.json", import.meta.url), "utf8"),
+);
+function fixture(t) {
+  const directory = mkdtempSync(join(tmpdir(), "needlemarks-test-"));
+  const store = createStore({
+    directory,
+    seed,
+    adminEmail: "admin@example.com",
+    adminPassword: "Test-only-admin-8492",
+  });
+  t.after(() => {
+    store.close();
+    const path = resolve(directory);
+    assert.ok(
+      path.startsWith(resolve(tmpdir()) + sep) &&
+        basename(path).startsWith("needlemarks-test-"),
+    );
+    rmSync(path, { recursive: true, force: true });
+  });
+  return store;
+}
+const item = {
+  id: "lucky",
+  quantity: 1,
+  color: "Krem",
+  size: "M",
+  note: "Milo",
+};
+const customer = {
+  name: "Deniz Örnek",
+  email: "deniz@example.com",
+  phone: "05550000000",
+  city: "İstanbul",
+  district: "Kadıköy",
+  address: "Örnek mahalle, örnek sokak 12",
+};
+const order = (key = randomUUID()) => ({
+  idempotencyKey: key,
+  items: [{ ...item, price: 1 }],
+  coupon: "ILKILMEK10",
+  customer,
+  consent: true,
+});
+test("hesap parolası özetlenir, rol istemciden yükseltilemez, çıkış oturumu iptal eder", (t) => {
+  const s = fixture(t);
+  const result = s.register({
+    name: "Deniz Örnek",
+    email: "user@example.com",
+    password: "Sample-customer-8492",
+    role: "admin",
+  });
+  assert.equal(result.user.role, "customer");
+  assert.equal(s.session(result.token).email, "user@example.com");
+  const row = s.db
+    .prepare("SELECT password FROM users WHERE email=?")
+    .get("user@example.com");
+  assert.notEqual(row.password, "Sample-customer-8492");
+  s.logout(result.token);
+  assert.equal(s.session(result.token), null);
+  assert.throws(
+    () => s.authenticate("user@example.com", "wrong", "test-ip"),
+    /hatalı/,
+  );
+});
+test("tekrarlanan başarısız girişler sınırlandırılır", (t) => {
+  const s = fixture(t);
+  for (let i = 0; i < 8; i++)
+    assert.throws(() =>
+      s.authenticate("admin@example.com", "wrong", "test-ip"),
+    );
+  assert.throws(
+    () =>
+      s.authenticate("admin@example.com", "Test-only-admin-8492", "test-ip"),
+    /Çok fazla/,
+  );
+});
+test("fiyat istemciden alınmaz, kupon ve kargo kuruşla hesaplanır", (t) => {
+  const s = fixture(t),
+    q = s.calculate(order(), "guest-a");
+  assert.equal(q.subtotal, 189000);
+  assert.equal(q.discount, 18900);
+  assert.equal(q.shipping, 9900);
+  assert.equal(q.total, 180000);
+  assert.throws(
+    () => s.calculate({ ...order(), coupon: "BAD" }, "guest-a"),
+    /Kupon/,
+  );
+  assert.throws(
+    () =>
+      s.calculate(
+        { ...order(), items: [{ ...item, color: "invalid" }] },
+        "guest-a",
+      ),
+    /Renk/,
+  );
+});
+test("aynı ürüne ait satırlar birlikte stok sınırına tabidir", (t) => {
+  const s = fixture(t);
+  assert.throws(
+    () =>
+      s.calculate(
+        {
+          items: [
+            { ...item, quantity: 20 },
+            { ...item, quantity: 20 },
+          ],
+        },
+        "guest-a",
+      ),
+    /yeterli stok/,
+  );
+  assert.throws(
+    () => s.calculate({ items: [{ ...item, quantity: -1 }] }, "guest-a"),
+    /Geçersiz sayı/,
+  );
+});
+test("sipariş atomik, idempotent ve başka oturuma kapalıdır", (t) => {
+  const s = fixture(t),
+    payload = order();
+  const first = s.createOrder(payload, null, "guest-a");
+  const again = s.createOrder(payload, null, "guest-a");
+  assert.equal(first.id, again.id);
+  assert.equal(s.products().find((p) => p.id === "lucky").stock, 23);
+  assert.equal(s.coupons()[0].used, 1);
+  assert.equal(s.orders(null, "guest-b").length, 0);
+  assert.equal(s.orders(null, "guest-a").length, 1);
+  assert.throws(
+    () => s.createOrder(payload, null, "guest-b"),
+    /erişimi reddedildi/,
+  );
+});
+test("son stokta ikinci sipariş başarısız olur ve kupon kullanımı artmaz", (t) => {
+  const s = fixture(t);
+  const p = s.products().find((p) => p.id === "lucky");
+  s.saveProduct({ ...p, stock: 1 }, "admin");
+  s.createOrder(order(), null, "guest-a");
+  assert.throws(() => s.createOrder(order(), null, "guest-b"), /yeterli stok/);
+  assert.equal(s.coupons()[0].used, 1);
+  assert.equal(s.products().find((p) => p.id === "lucky").stock, 0);
+});
+test("sipariş tutarı ürün değişse veya taslağa alınsa da korunur", (t) => {
+  const s = fixture(t),
+    o = s.createOrder(order(), null, "guest-a");
+  const p = s.products().find((p) => p.id === "lucky");
+  s.saveProduct({ ...p, price: 999000, published: false }, "admin");
+  const saved = s.orders(null, "guest-a")[0];
+  assert.equal(saved.total, o.total);
+  assert.equal(saved.items[0].price, 189000);
+  assert.equal(
+    s.products().some((p) => p.id === "lucky"),
+    false,
+  );
+  assert.equal(
+    s.products(true).some((p) => p.id === "lucky"),
+    true,
+  );
+});
+test("fotoğrafa sahiplik ve sipariş durumuna izin verilen değerler denetlenir", (t) => {
+  const s = fixture(t);
+  s.addUpload("photo-one", "guest-a", "photo.png", "image/png");
+  assert.throws(
+    () =>
+      s.calculate({ items: [{ ...item, uploadId: "photo-one" }] }, "guest-b"),
+    /oturuma ait değil/,
+  );
+  const o = s.createOrder(order(), null, "guest-a");
+  assert.throws(() => s.updateOrder(o.id, "paid", "admin"), /Geçersiz/);
+  s.updateOrder(o.id, "designing", "admin");
+  assert.equal(s.orders(null, "guest-a")[0].status, "designing");
+});
+test("kupon kullanım limiti ve minimum tutar korunur", (t) => {
+  const s = fixture(t);
+  s.saveCoupon(
+    { code: "ONE", percent: 20, minimum: 150000, usageLimit: 1, active: true },
+    "admin",
+  );
+  s.createOrder({ ...order(), coupon: "ONE" }, null, "guest-a");
+  assert.throws(
+    () => s.createOrder({ ...order(), coupon: "ONE" }, null, "guest-b"),
+    /Kupon/,
+  );
+  assert.throws(
+    () =>
+      s.saveCoupon(
+        { code: "BAD", percent: 99, minimum: 0, usageLimit: 10, active: true },
+        "admin",
+      ),
+    /Geçersiz sayı/,
+  );
+});
+
+test("kategori ve koleksiyon ayrı yönetilir, yeniden adlandırma ürün bağlantısını korur", (t) => {
+  const s = fixture(t),
+    category = s.saveTaxonomy(
+      { type: "categories", name: "Çocuk ürünleri" },
+      "admin",
+    );
+  const collection = s.saveTaxonomy(
+    { type: "collections", name: "Yeni sezon" },
+    "admin",
+  );
+  const product = s.products()[0];
+  s.saveProduct(
+    { ...product, category: category.id, collections: [collection.id] },
+    "admin",
+  );
+  s.saveTaxonomy(
+    {
+      type: "categories",
+      id: category.id,
+      name: "Çocuk koleksiyonu değil, kategorisi",
+    },
+    "admin",
+  );
+  assert.equal(
+    s.products().find((p) => p.id === product.id).category,
+    category.id,
+  );
+  assert.deepEqual(s.products().find((p) => p.id === product.id).collections, [
+    collection.id,
+  ]);
+  assert.throws(
+    () => s.removeTaxonomy({ type: "categories", id: category.id }, "admin"),
+    /ürün var/,
+  );
+  assert.throws(
+    () => s.removeTaxonomy({ type: "collections", id: collection.id }, "admin"),
+    /ürün var/,
+  );
+  assert.throws(
+    () => s.saveTaxonomy({ type: "collections", name: "yeni sezon" }, "admin"),
+    /zaten kullanılıyor/,
+  );
+});
+
+test("boş gruplar kaldırılır, geçersiz ürün atamaları kaydedilmez", (t) => {
+  const s = fixture(t),
+    category = s.saveTaxonomy(
+      { type: "categories", name: "Boş kategori" },
+      "admin",
+    );
+  s.removeTaxonomy({ type: "categories", id: category.id }, "admin");
+  assert.equal(
+    s.taxonomy("categories").some((c) => c.id === category.id),
+    false,
+  );
+  assert.throws(
+    () => s.saveProduct({ ...s.products()[0], category: category.id }, "admin"),
+    /kategori seç/,
+  );
+  assert.throws(
+    () =>
+      s.saveProduct({ ...s.products()[0], collections: ["missing"] }, "admin"),
+    /Koleksiyon/,
+  );
+  assert.throws(
+    () => s.saveTaxonomy({ type: "unknown", name: "Test" }, "admin"),
+    /Geçersiz/,
+  );
+});
+
+test("banner ve bilgi metni kaydedilir, harici çalıştırılabilir bağlantı reddedilir", (t) => {
+  const s = fixture(t),
+    settings = s.settings();
+  const updated = {
+    ...settings,
+    banner: {
+      ...settings.banner,
+      title: "Yeni sezon",
+      buttonLink: "#/urunler",
+    },
+    legalPages: settings.legalPages.map((p) =>
+      p.id === "gizlilik" ? { ...p, body: "Yeni örnek gizlilik metni." } : p,
+    ),
+  };
+  s.saveSettings(updated, "admin");
+  assert.equal(s.settings().banner.title, "Yeni sezon");
+  assert.equal(
+    s.settings().legalPages.find((p) => p.id === "gizlilik").body,
+    "Yeni örnek gizlilik metni.",
+  );
+  assert.throws(
+    () =>
+      s.saveSettings(
+        {
+          ...updated,
+          banner: { ...updated.banner, buttonLink: "javascript:alert(1)" },
+        },
+        "admin",
+      ),
+    /Banner/,
+  );
+});
