@@ -55,8 +55,8 @@ const order = (key = randomUUID()) => ({
   customer,
   consent: true,
 });
-test('temiz tarayıcıda demo açılır ve kişiselleştirme siparişi oluşturulur',()=>{
-  const script=`
+test("temiz tarayıcıda demo açılır ve kişiselleştirme siparişi oluşturulur", () => {
+  const script = `
     import assert from 'node:assert/strict';
     import {readFileSync} from 'node:fs';
     const seed=JSON.parse(readFileSync('./data/catalog.json','utf8'));
@@ -67,15 +67,19 @@ test('temiz tarayıcıda demo açılır ve kişiselleştirme siparişi oluşturu
     const S=await import('./data.js');
     assert.equal((await S.getOrders()).length,3);
     const p=S.catalog.products.find(p=>p.id==='together');
-    S.cart.push({id:p.id,key:'sample',quantity:1,color:p.colors[0],size:p.sizes[0],selections:{placement:'İki kol'},answers:{'right-name':'Milo','left-name':'Luna',thread:'Bordo',photos:[]}});
+    S.cart.push({id:p.id,key:'sample',quantity:1,color:p.colors[0],size:p.sizes[0],selections:{size:'M',color:p.colors[0],placement:'Sağ kol'},answers:{'right-name':'Milo','left-name':'Luna',thread:'Bordo',photos:[]}});
     assert.equal(S.quoteLocal().subtotal,p.price);
     const order=await S.placeOrder({idempotencyKey:'fresh-browser-test',customer:{name:'Deniz Örnek'}});
-    assert.equal(order.items[0].optionSelections[0].value,'İki kol');
+    assert.equal(order.items[0].optionSelections.find(row=>row.name==='Nakış konumu').value,'Sağ kol');
     assert.equal(order.items[0].optionAnswers[0].value,'Milo');
     assert.equal(S.cart.length,0);
   `;
-  const result=spawnSync(process.execPath,['--input-type=module','-e',script],{cwd:new URL('..',import.meta.url),encoding:'utf8'});
-  assert.equal(result.status,0,result.stderr);
+  const result = spawnSync(
+    process.execPath,
+    ["--input-type=module", "-e", script],
+    { cwd: new URL("..", import.meta.url), encoding: "utf8" },
+  );
+  assert.equal(result.status, 0, result.stderr);
 });
 function customized(s) {
   const p = s.products(true).find((p) => p.id === "lucky");
@@ -124,6 +128,168 @@ const customizedItem = () => ({
   ...item,
   selections: { placement: "Sağ kol" },
   answers: { name: "Milo", thread: "Siyah", photos: [] },
+});
+function scopedProduct(s) {
+  const p = s.products(true).find((p) => p.id === "lucky");
+  return s.saveProduct(
+    {
+      ...p,
+      managedVariations: true,
+      sku: "COMMON",
+      customFields: [],
+      variations: [
+        { id: "size", name: "Beden", kind: "size", options: ["S", "M"] },
+        {
+          id: "color",
+          name: "Renk",
+          kind: "color",
+          options: ["Siyah", "Krem"],
+        },
+        {
+          id: "location",
+          name: "Nakış konumu",
+          kind: "placement",
+          options: ["Sağ kol", "Sol göğüs"],
+          markers: { "Sağ kol": "right-sleeve", "Sol göğüs": "left-chest" },
+        },
+      ],
+      variants: [],
+      variationRules: {
+        price: {
+          enabled: true,
+          scope: "location",
+          values: [
+            { key: variantKey(["Sağ kol"]), value: 190000 },
+            { key: variantKey(["Sol göğüs"]), value: 210000 },
+          ],
+        },
+        stock: {
+          enabled: true,
+          scope: "size",
+          values: [
+            { key: variantKey(["S"]), value: 5 },
+            { key: variantKey(["M"]), value: 2 },
+          ],
+        },
+        sku: {
+          enabled: true,
+          scope: "color",
+          values: [
+            { key: variantKey(["Siyah"]), value: "NM-SY" },
+            { key: variantKey(["Krem"]), value: "NM-KR" },
+          ],
+        },
+      },
+    },
+    "admin",
+  );
+}
+const scopedItem = (color = "Siyah", location = "Sağ kol") => ({
+  ...item,
+  selections: { size: "M", color, location },
+  answers: {},
+});
+test("fiyat, stok ve SKU bağımsız gruplara göre hesaplanır ve siparişe kaydedilir", (t) => {
+  const s = fixture(t),
+    p = scopedProduct(s);
+  assert.equal(p.variations[2].markers["Sol göğüs"], "left-chest");
+  const calculated = s.calculate(
+    { items: [{ ...scopedItem("Krem", "Sol göğüs"), price: 1, sku: "FAKE" }] },
+    "owner",
+  );
+  assert.equal(calculated.items[0].price, 210000);
+  assert.equal(calculated.items[0].sku, "NM-KR");
+  assert.equal(calculated.items[0].stockKey, variantKey(["M"]));
+  const data = {
+    ...order(),
+    coupon: "",
+    items: [scopedItem("Krem", "Sol göğüs")],
+  };
+  const saved = s.createOrder(data, "owner", null);
+  assert.equal(saved.items[0].sku, "NM-KR");
+  assert.equal(
+    s.products(true).find((p) => p.id === "lucky").variationRules.stock
+      .values[1].value,
+    1,
+  );
+  s.createOrder(data, "owner", null);
+  assert.equal(
+    s.products(true).find((p) => p.id === "lucky").variationRules.stock
+      .values[1].value,
+    1,
+  );
+});
+test("aynı bedenin stoku renk veya konum değiştirerek aşılamaz", (t) => {
+  const s = fixture(t);
+  scopedProduct(s);
+  assert.throws(
+    () =>
+      s.calculate(
+        {
+          items: [
+            scopedItem("Siyah"),
+            { ...scopedItem("Krem", "Sol göğüs"), quantity: 2 },
+          ],
+        },
+        "owner",
+      ),
+    /stok/,
+  );
+  s.createOrder(
+    {
+      ...order(),
+      coupon: "",
+      items: [scopedItem("Siyah"), scopedItem("Krem", "Sol göğüs")],
+    },
+    "owner",
+    null,
+  );
+  assert.throws(
+    () =>
+      s.createOrder(
+        { ...order(), coupon: "", items: [scopedItem()] },
+        "owner",
+        null,
+      ),
+    /stok/,
+  );
+  const p = s.products(true).find((p) => p.id === "lucky");
+  assert.equal(p.variationRules.stock.values[1].value, 0);
+  assert.equal(p.stock, 22);
+});
+test("bağımsız anahtarlar kapatılınca ortak değerler kullanılır; varyasyonsuz ürün seçimsiz alınır", (t) => {
+  const s = fixture(t),
+    p = scopedProduct(s);
+  const disabled = Object.fromEntries(
+    ["price", "stock", "sku"].map((type) => [
+      type,
+      { enabled: false, scope: "*", values: [] },
+    ]),
+  );
+  const shared = s.saveProduct({ ...p, variationRules: disabled }, "admin");
+  const selected = resolveOptions(shared, scopedItem());
+  assert.equal(selected.price, p.price);
+  assert.equal(selected.stock, p.stock);
+  assert.equal(selected.sku, "COMMON");
+  const simple = s.saveProduct(
+    { ...shared, variations: [], variationRules: disabled, customFields: [] },
+    "admin",
+  );
+  assert.equal(
+    s.calculate({ items: [{ id: simple.id, quantity: 1 }] }, "owner").subtotal,
+    simple.price,
+  );
+  assert.throws(
+    () =>
+      normalizeOptions({
+        ...p,
+        variationRules: {
+          ...p.variationRules,
+          price: { ...p.variationRules.price, scope: "missing" },
+        },
+      }),
+    /geçerli bir grup/,
+  );
 });
 test("özel başlıklar ve alanlar kaydedilir; geçersiz tanım reddedilir", (t) => {
   const s = fixture(t),

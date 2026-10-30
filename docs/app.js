@@ -3,29 +3,31 @@ import {
   readOptions,
   optionAction,
   saveOption,
-  inventoryChange,
+  optionChange,
+  saveManager,
+  showVariationManager,
   customerOptions,
   selectionsHTML,
-} from "./options-ui.js?v=8c35fd441fa1";
+} from "./options-ui.js?v=7df5bab2382c";
 import {
   fieldsFor,
   resolveOptions,
   selectedVariant,
-} from "./product-options.js?v=8c35fd441fa1";
-import { categorySlug } from "./catalog-rules.js?v=8c35fd441fa1";
+} from "./product-options.js?v=7df5bab2382c";
+import { categorySlug } from "./catalog-rules.js?v=7df5bab2382c";
 import {
   siteFooter,
   bannerEditor,
   legalEditor,
   legalBody,
-} from "./store-content.js?v=8c35fd441fa1";
+} from "./store-content.js?v=7df5bab2382c";
 import {
   productEditor,
   taxonomyPage,
   taxonomyEditor,
   categoryCover,
-} from "./admin-catalog.js?v=8c35fd441fa1";
-import * as S from "./data.js?v=8c35fd441fa1";
+} from "./admin-catalog.js?v=7df5bab2382c";
+import * as S from "./data.js?v=7df5bab2382c";
 const $ = (s, r = document) => r.querySelector(s),
   $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const esc = (v) =>
@@ -149,9 +151,10 @@ function detailPage(id) {
   const p = S.catalog.products.find((p) => p.id === id && p.published);
   if (!p) return notFound();
   main.innerHTML = `<section class="product-detail"><nav class="breadcrumbs"><a href="#/">Ana sayfa</a><span>/</span><a href="#/urunler">Koleksiyon</a><span>/</span><span>${esc(p.kind)}</span></nav><div class="detail-columns"><div><div class="detail-image"><img id="detailMainImage" src="${esc(p.image)}" alt="${esc(p.kind)}"><span class="product-badge">${esc(p.badge || "SANA ÖZEL")}</span></div><div class="gallery-thumbs">${(p.images || [p.image]).map((image, i) => `<button data-gallery="${i}" data-product-id="${esc(p.id)}" aria-label="Ürün görseli ${i + 1}"><img src="${esc(image)}" alt=""></button>`).join("")}</div><p class="catalog-note">Örnek görsel. Renk seçimi fotoğrafı değiştirmez; fotoğrafın nakışa dönüştürülmez.</p></div><div class="detail-copy"><div class="eyebrow">${esc(p.kind.toLocaleUpperCase("tr"))}</div><h1>${esc(p.name)}</h1><div class="detail-price">${money(p.price)} <span>${p.stock ? "Kişiye özel hazırlanır" : "Şu an tükendi"}</span></div><p>${esc(p.description)}</p><form data-form="add-product" data-id="${esc(p.id)}">${[
-    ["color", "01 · Rengini seç", p.colors],
-    ["size", "02 · Bedenini seç", p.sizes],
+    ["color", "01 · Rengini seç", p.managedVariations ? [] : p.colors],
+    ["size", "02 · Bedenini seç", p.managedVariations ? [] : p.sizes],
   ]
+    .filter(([, , options]) => options.length)
     .map(
       ([n, t, a]) =>
         `<fieldset><legend>${t}${n === "size" ? '<button type="button" class="subtle-link" data-action="size-guide">Beden rehberi</button>' : ""}</legend><div class="choice-row">${a.map((v, i) => `<label><input name="${n}" type="radio" value="${esc(v)}" ${i === 0 ? "checked" : ""}><span>${esc(v)}</span></label>`).join("")}</div></fieldset>`,
@@ -176,7 +179,7 @@ function cartRows() {
       const p = S.catalog.products.find((p) => p.id === i.id);
       if (!p)
         return `<div class="cart-row">Ürün artık mevcut değil.<button data-remove="${esc(i.key)}">Kaldır</button></div>`;
-      return `<article class="cart-row"><a href="#/urun/${encodeURIComponent(p.id)}"><img src="${esc(p.image)}" alt="${esc(p.kind)}"></a><div><span class="product-category">${esc(p.kind)}</span><a href="#/urun/${encodeURIComponent(p.id)}"><h3>${esc(p.name)}</h3></a><p>${esc(i.color)} · ${esc(i.size)}</p>${selectionsHTML(i)}${!i.optionAnswers && i.note ? `<p>Not: ${esc(i.note)}</p>` : ""}${i.photoSelected ? "<p>Fotoğraf seçildi · Demo kişiselleştirme</p>" : ""}<button class="remove-item" data-remove="${esc(i.key)}">Kaldır</button></div><div class="cart-row-total"><strong>${money(itemPrice(p, i) * i.quantity)}</strong><div class="quantity"><button data-quantity="${esc(i.key)}" data-change="-1" aria-label="${esc(p.kind)} adedini azalt">−</button><span>${i.quantity}</span><button data-quantity="${esc(i.key)}" data-change="1" aria-label="${esc(p.kind)} adedini artır">+</button></div></div></article>`;
+      return `<article class="cart-row"><a href="#/urun/${encodeURIComponent(p.id)}"><img src="${esc(p.image)}" alt="${esc(p.kind)}"></a><div><span class="product-category">${esc(p.kind)}</span><a href="#/urun/${encodeURIComponent(p.id)}"><h3>${esc(p.name)}</h3></a>${!i.managedVariations ? `<p>${esc(i.color)} · ${esc(i.size)}</p>` : ""}${selectionsHTML(i)}${i.sku ? `<small>Ürün kodu: ${esc(i.sku)}</small>` : ""}${!i.optionAnswers && i.note ? `<p>Not: ${esc(i.note)}</p>` : ""}${i.photoSelected ? "<p>Fotoğraf seçildi · Demo kişiselleştirme</p>" : ""}<button class="remove-item" data-remove="${esc(i.key)}">Kaldır</button></div><div class="cart-row-total"><strong>${money(itemPrice(p, i) * i.quantity)}</strong><div class="quantity"><button data-quantity="${esc(i.key)}" data-change="-1" aria-label="${esc(p.kind)} adedini azalt">−</button><span>${i.quantity}</span><button data-quantity="${esc(i.key)}" data-change="1" aria-label="${esc(p.kind)} adedini artır">+</button></div></div></article>`;
     })
     .join("");
 }
@@ -208,7 +211,7 @@ async function checkoutPage() {
     `<section class="checkout-layout"><form data-form="checkout" class="surface-form"><div class="checkout-steps"><span>01 Sepet</span><span class="current">02 Teslimat</span><span>03 Demo onayı</span></div><h2>Hikâyen nereye gelsin?</h2><p class="field-hint">Bu bir demo. Gerçek kişisel bilgiler yerine örnek bilgiler kullanabilirsin.</p><div class="form-grid">${field("Ad soyad", "name", S.user?.name || "", "text", 'required minlength="3" maxlength="100" placeholder="Deniz Örnek"')}${field("E-posta", "email", S.user?.email || "", "email", 'required maxlength="160" placeholder="deniz@example.com"')}${field("Telefon", "phone", "", "tel", 'required minlength="10" maxlength="30" placeholder="0555 000 00 00"')}<label>İl<select name="city" required><option value="">İl seç</option>${cities.map((c) => `<option>${c}</option>`).join("")}</select></label>${field("İlçe", "district", "", "text", 'required minlength="2" maxlength="80" placeholder="Örnek ilçe"')}${field("Posta kodu (isteğe bağlı)", "postalCode", "", "text", 'pattern="[0-9]{5}" maxlength="5" placeholder="34000"')}<label class="full-width">Açık adres<textarea name="address" required minlength="10" maxlength="400" placeholder="Örnek mahalle, sokak, bina ve daire"></textarea></label></div><label class="checkbox-line"><input name="consent" type="checkbox" required> Bunun gerçek ödeme veya gönderim oluşturmayan bir demo siparişi olduğunu anladım.</label><div data-error></div><button class="button button-dark">Demo siparişini oluştur ${icon("arrow")}</button><p class="field-hint">Kart bilgisi istenmez. Vergi faturası veya kargo kaydı oluşturulmaz.</p></form><aside class="order-summary"><div class="eyebrow">SEÇTİĞİN PARÇALAR</div>${S.cart
       .map((i) => {
         const p = S.catalog.products.find((p) => p.id === i.id);
-        return `<div class="checkout-item"><img src="${esc(p.image)}" alt=""><div>${esc(p.kind)}<small>${esc(i.color)} · ${esc(i.size)} · ${i.quantity} adet</small>${selectionsHTML(i)}</div><span>${money(itemPrice(p, i) * i.quantity)}</span></div>`;
+        return `<div class="checkout-item"><img src="${esc(p.image)}" alt=""><div>${esc(p.kind)}<small>${i.managedVariations ? "" : esc(i.color) + " · " + esc(i.size) + " · "}${i.quantity} adet</small>${selectionsHTML(i)}${i.sku ? `<small>Ürün kodu: ${esc(i.sku)}</small>` : ""}</div><span>${money(itemPrice(p, i) * i.quantity)}</span></div>`;
       })
       .join("")}${await totals()}</aside></section>`;
 }
@@ -228,7 +231,7 @@ async function orderPage(id) {
       )
       .join(
         "",
-      )}</div></div><div class="order-detail-grid"><div class="surface"><h3>Seçtiğin parçalar</h3>${o.items.map((i) => `<div class="checkout-item"><img src="${esc(i.image)}" alt=""><div>${esc(i.kind)}<small>${esc(i.color)} · ${esc(i.size)} · ${i.quantity} adet</small>${selectionsHTML(i)}${!i.optionAnswers && i.note ? `<small>${esc(i.note)}</small>` : ""}${i.uploadId && S.mode === "server" ? `<a class="subtle-link" href="./api/uploads/${encodeURIComponent(i.uploadId)}" target="_blank" rel="noopener">Fotoğrafı görüntüle</a>` : ""}</div><span>${money(i.price * i.quantity)}</span></div>`).join("")}<div class="total-line grand-total"><strong>Demo toplam</strong><strong>${money(o.total)}</strong></div></div><div class="surface"><h3>Teslimat bilgileri</h3><p>${esc(o.customer.name)}<br>${esc(o.customer.address)}<br>${esc(o.customer.district)} / ${esc(o.customer.city)}</p><p>${esc(o.customer.email)}<br>${esc(o.customer.phone)}</p><p class="field-hint">Tahsilat, gerçek üretim ve kargo başlatılmadı.</p></div></div><a href="#/urunler" class="text-link">Yeni hikâyeler keşfet ${icon("arrow")}</a></section>`;
+      )}</div></div><div class="order-detail-grid"><div class="surface"><h3>Seçtiğin parçalar</h3>${o.items.map((i) => `<div class="checkout-item"><img src="${esc(i.image)}" alt=""><div>${esc(i.kind)}<small>${i.managedVariations ? "" : esc(i.color) + " · " + esc(i.size) + " · "}${i.quantity} adet</small>${selectionsHTML(i)}${i.sku ? `<small>Ürün kodu: ${esc(i.sku)}</small>` : ""}${!i.optionAnswers && i.note ? `<small>${esc(i.note)}</small>` : ""}${i.uploadId && S.mode === "server" ? `<a class="subtle-link" href="./api/uploads/${encodeURIComponent(i.uploadId)}" target="_blank" rel="noopener">Fotoğrafı görüntüle</a>` : ""}</div><span>${money(i.price * i.quantity)}</span></div>`).join("")}<div class="total-line grand-total"><strong>Demo toplam</strong><strong>${money(o.total)}</strong></div></div><div class="surface"><h3>Teslimat bilgileri</h3><p>${esc(o.customer.name)}<br>${esc(o.customer.address)}<br>${esc(o.customer.district)} / ${esc(o.customer.city)}</p><p>${esc(o.customer.email)}<br>${esc(o.customer.phone)}</p><p class="field-hint">Tahsilat, gerçek üretim ve kargo başlatılmadı.</p></div></div><a href="#/urunler" class="text-link">Yeni hikâyeler keşfet ${icon("arrow")}</a></section>`;
 }
 async function accountPage() {
   if (!S.user) return authPage();
@@ -610,7 +613,7 @@ document.addEventListener("click", async (event) => {
         .filter(
           (i) =>
             i.id === p.id &&
-            selectedVariant(p, i.selections).key === variant.key,
+            selectedVariant(p, i.selections).stockKey === variant.stockKey,
         )
         .reduce((sum, i) => sum + i.quantity, 0);
       if (
@@ -742,7 +745,7 @@ document.addEventListener("input", (event) => {
 });
 document.addEventListener("change", async (event) => {
   try {
-    if (event.target.id === "variantInventory") inventoryChange();
+    if (optionChange(event.target, modal)) return;
     if (event.target.matches("[data-customer-variation]")) {
       const form = event.target.closest("form"),
         p = S.catalog.products.find((p) => p.id === form.dataset.id);
@@ -888,8 +891,19 @@ document.addEventListener("submit", async (event) => {
         filters = { ...filters, ...data };
         grid(location.hash === "#/favoriler");
         break;
+      case "variation-manager": {
+        saveManager();
+        closeModal();
+        renderOptions();
+        toast("Varyasyonlar uygulandı. Ürünü kaydetmeyi unutma.");
+        break;
+      }
       case "option-editor": {
         saveOption(form);
+        if (form.dataset.kind === "variation") {
+          showVariationManager(modal);
+          break;
+        }
         closeModal();
         renderOptions();
         toast("Alan uygulandı. Ürünü kaydetmeyi unutma.");
@@ -945,7 +959,7 @@ document.addEventListener("submit", async (event) => {
           .filter(
             (i) =>
               i.id === p.id &&
-              selectedVariant(p, i.selections).key === resolved.key,
+              selectedVariant(p, i.selections).stockKey === resolved.stockKey,
           )
           .reduce((sum, i) => sum + i.quantity, 0);
         if (variantCount + quantity > resolved.stock)
@@ -953,8 +967,10 @@ document.addEventListener("submit", async (event) => {
         S.cart.push({
           key: S.uid(),
           id: p.id,
-          color: data.color,
-          size: data.size,
+          color: data.color || p.colors[0],
+          size: data.size || p.sizes[0],
+          managedVariations: p.managedVariations,
+          sku: resolved.sku,
           quantity,
           selections,
           answers,
@@ -964,7 +980,7 @@ document.addEventListener("submit", async (event) => {
         S.saveCart();
         header();
         modal(
-          `<div class="added-panel"><span class="checkout-icon">${icon("check")}</span><div class="eyebrow">HİKÂYENE EKLENDİ</div><h2>Güzel bir <em>başlangıç.</em></h2><p>${esc(p.kind)} · ${esc(data.color)} · ${esc(data.size)}</p><a class="button button-dark" href="#/sepet" data-close-modal>Sepetime git ${icon("bag")}</a><button class="text-link" type="button" data-action="close-modal">Keşfetmeye devam et</button></div>`,
+          `<div class="added-panel"><span class="checkout-icon">${icon("check")}</span><div class="eyebrow">HİKÂYENE EKLENDİ</div><h2>Güzel bir <em>başlangıç.</em></h2><p>${esc(p.kind)} · ${resolved.selections.length ? resolved.selections.map((row) => esc(row.value)).join(" · ") : esc(data.color || p.colors[0]) + " · " + esc(data.size || p.sizes[0])}</p><a class="button button-dark" href="#/sepet" data-close-modal>Sepetime git ${icon("bag")}</a><button class="text-link" type="button" data-action="close-modal">Keşfetmeye devam et</button></div>`,
         );
         break;
       }
@@ -1038,12 +1054,12 @@ document.addEventListener("submit", async (event) => {
           badge: old?.badge || "SANA ÖZEL",
           price: Math.round(Number(data.price) * 100),
           stock: Number(data.stock),
-          colors: (data.colors || "Doğal")
+          colors: (data.colors || old?.colors?.join(", ") || "Doğal")
             .split(",")
             .map((value) => value.trim())
             .filter(Boolean)
             .slice(0, 12),
-          sizes: (data.sizes || "Standart")
+          sizes: (data.sizes || old?.sizes?.join(", ") || "Standart")
             .split(",")
             .map((value) => value.trim())
             .filter(Boolean)

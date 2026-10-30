@@ -60,7 +60,7 @@ Değişikliklerden sonra `node scripts/build-demo.mjs` çalıştırın. Kaynak d
 
 ## Devam edilecek yer
 
-Son bırakılan bölüm Yönetim → Ürünler → Ürünü düzenle → Ürün seçenekleri. Varyasyonlar ve kişiselleştirme alanları tamamlandı; sonraki düzenleme isteği bekleniyor. Gerçek ürün/kategori fotoğrafları, kesin içerikler ve ticari metinler henüz marka tarafından sağlanmadı. Gerçek ödeme, kargo, e-posta, faturalama ve üretim yayını bağlı değil. Bu işleri tamamlanmış gibi sunmayın ve kullanıcı istemeden satışa açmayın.
+Son bırakılan bölüm Yönetim → Ürünler → Ürünü düzenle → Varyasyonları yönet. Etsy benzeri yönetim penceresi ve görselli nakış konumu seçimi tamamlandı; sonraki düzenleme isteği bekleniyor. Gerçek ürün/kategori fotoğrafları, kesin içerikler ve ticari metinler henüz marka tarafından sağlanmadı. Gerçek ödeme, kargo, e-posta, faturalama ve üretim yayını bağlı değil. Bu işleri tamamlanmış gibi sunmayın ve kullanıcı istemeden satışa açmayın.
 
 ## Dağıtım önbelleği notu
 
@@ -81,3 +81,17 @@ GitHub Pages eski JavaScript dosyalarını önbellekte tutabildiği için demo o
 - Etsy yalnızca davranış referansı: https://help.etsy.com/hc/en-us/articles/360000344528-How-to-Offer-Personalized-Listings ve https://help.etsy.com/hc/en-us/articles/115015664047-How-to-Add-Variations-to-Your-Listings . Etsy hesabına/API'sine bağlı değildir.
 
 Temiz tarayıcıda ilk açılış ayrıca test edildi. Örnek sipariş verisi geçmiş kayıt gibi sabit fiyatla oluşturulur; yeni varyasyon seçimi beklemez. Boş localStorage ile demo başlangıcı ve kişiselleştirilmiş sipariş için regresyon testi eklendi.
+
+## Son güncelleme: kartlı varyasyon yöneticisi ve görselli nakış konumu
+
+Önceki varyasyon sınırı/arayüz açıklamalarının yerine bu bölüm geçerlidir.
+
+- Ürün formundaki Varyasyonları yönet düğmesi ayrı pencere açar. Grup kartlarında ad, seçenek sayısı, seçenek etiketleri ve düzenle/sil düğmeleri var. Ürüne uygula pencereyi kapatıp üründeki taslağa uygular; kalıcı kayıt için ürünün Kaydet düğmesi kullanılır. Vazgeç pencere değişikliklerini ürüne uygulamaz.
+- En fazla 3 grup / grup başına 30 seçenek / toplam 400 birleşim. Beden, Renk, Nakış konumu hazır başlangıçları ve serbest grup var. Başlıklar/seçenekler düzenlenir. Yeni ürünlerde varyasyon otomatik zorunlu değildir; boş bırakılabilir. Bir ürüne eklenen grup diğer ürünleri etkilemez.
+- Fiyatlar farklı, Stoklar farklı, Ürün kodları farklı bağımsız anahtarlar. Her birinde ayrı olarak yalnızca bir gruba veya tüm grupların birleşimine göre değer atanabilir. Örn. fiyat nakış konumuna, stok bedene, SKU renge göre. Kapalı anahtar ortak ürün değerini kullanır. Ortak SKU Ek bilgiler altında, isteğe bağlıdır.
+- Stok grubu ortak olduğunda renk/konum değişse de aynı stok havuzu kullanılır; aynı gruptan sepetteki satırlar birlikte doğrulanır. Siparişte doğru havuz ve toplam ürün stoku düşer. İstemciden gelen fiyat/SKU kabul edilmez. Sipariş anlık görüntüsünde SKU da saklanır.
+- Nakış konumu türü müşteriye tişört çizimli radyo kartları gösterir. Yönetici her seçeneğin sağ kol, sol kol, sol göğüs, göğüs ortası, sırt veya ön taraftaki görsel işaretini seçebilir. Seçenek adları serbesttir. Konum grubu olmayan üründe bu bölüm görünmez. Şimdilik tek konum seçilir; çoklu nakış konumu siparişi ve konuma koşullu kişiselleştirme alanları eklenmedi.
+- Eski renk/beden alanları yeni formda varyasyon kartlarına taşındı; müşteri sayfasında çift seçenek gösterilmez. Daha önce özel stok tablosu olan eski ürünler veri kaybı olmaması için eski renk/beden uyumluluğunu korur. Eski varyasyon tablosu okuma ve sipariş testleri geçer.
+- Yeni ziyaretçi örneği: Çift nakışı ürününde beden/renk/4 nakış konumu, konuma göre fiyat, bedene göre stok ve ortak SKU. Önceden localStorage'a kaydedilmiş ürünler kullanıcı değişiklikleri korunarak bırakılır.
+- 21 test geçti: önceki 18 teste ek olarak bağımsız fiyat/stok/SKU kapsamı, grup stok havuzunun farklı renk/konumlarla aşılamaması, kapalı ayarlarda ortak değer ve varyasyonsuz ürün siparişi. Temiz tarayıcı demo başlangıcı testi yeni örneğe uyarlandı.
+- Tarayıcıda 3 grup oluşturuldu; fiyat nakış konumuna, stok bedene, SKU renge bağlandı. M / Yeşil / Sağ kol seçimiyle 2190 TL ürün fiyatı ve NM-YESIL SKU siparişe geçti; görselli konum kartları doğrulandı.

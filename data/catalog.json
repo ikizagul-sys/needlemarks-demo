@@ -43,9 +43,28 @@
       "collections": ["personal", "gifts"],
       "variations": [
         {
+          "id": "size",
+          "name": "Beden",
+          "kind": "size",
+          "options": ["S", "M", "L", "XL"]
+        },
+        {
+          "id": "color",
+          "name": "Renk",
+          "kind": "color",
+          "options": ["Yeşil", "Krem", "Siyah"]
+        },
+        {
           "id": "placement",
-          "name": "Nakış yeri",
-          "options": ["Sağ kol", "Sol kol", "İki kol"]
+          "name": "Nakış konumu",
+          "kind": "placement",
+          "options": ["Sağ kol", "Sol kol", "Sol göğüs", "Göğüs ortası"],
+          "markers": {
+            "Sağ kol": "right-sleeve",
+            "Sol kol": "left-sleeve",
+            "Sol göğüs": "left-chest",
+            "Göğüs ortası": "center-chest"
+          }
         }
       ],
       "variants": [],
@@ -82,7 +101,60 @@
           "instructions": "Nakış için örnek fotoğraflarını seçebilirsin.",
           "maxFiles": 3
         }
-      ]
+      ],
+      "managedVariations": true,
+      "sku": "NM-CIFT",
+      "variationRules": {
+        "price": {
+          "enabled": true,
+          "scope": "placement",
+          "values": [
+            {
+              "key": "[\"Sağ kol\"]",
+              "value": 209000
+            },
+            {
+              "key": "[\"Sol kol\"]",
+              "value": 209000
+            },
+            {
+              "key": "[\"Sol göğüs\"]",
+              "value": 229000
+            },
+            {
+              "key": "[\"Göğüs ortası\"]",
+              "value": 239000
+            }
+          ]
+        },
+        "stock": {
+          "enabled": true,
+          "scope": "size",
+          "values": [
+            {
+              "key": "[\"S\"]",
+              "value": 4
+            },
+            {
+              "key": "[\"M\"]",
+              "value": 6
+            },
+            {
+              "key": "[\"L\"]",
+              "value": 5
+            },
+            {
+              "key": "[\"XL\"]",
+              "value": 3
+            }
+          ]
+        },
+        "sku": {
+          "enabled": false,
+          "scope": "*",
+          "values": []
+        }
+      }
     },
     {
       "id": "tote",

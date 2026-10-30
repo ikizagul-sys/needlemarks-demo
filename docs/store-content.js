@@ -1,4 +1,4 @@
-import { categorySlug } from "./catalog-rules.js?v=8c35fd441fa1";
+import { categorySlug } from "./catalog-rules.js?v=7df5bab2382c";
 const esc = (value) =>
   String(value ?? "").replace(
     /[&<>"']/g,

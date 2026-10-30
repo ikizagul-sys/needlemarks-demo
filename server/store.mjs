@@ -1,4 +1,8 @@
-import { normalizeOptions, resolveOptions } from "../product-options.js";
+import {
+  normalizeOptions,
+  resolveOptions,
+  reduceVariantStock,
+} from "../product-options.js";
 import { normalizeContent, validateContent } from "../content-defaults.js";
 import {
   defaultCategories,
@@ -265,7 +269,10 @@ export function createStore({ directory, seed, adminEmail, adminPassword }) {
       demand.set(p.id, (demand.get(p.id) || 0) + quantity);
       if (demand.get(p.id) > p.stock)
         throw new AppError(`${p.kind} için yeterli stok yok.`);
-      if (!p.colors.includes(item.color) || !p.sizes.includes(item.size))
+      if (
+        !p.managedVariations &&
+        (!p.colors.includes(item.color) || !p.sizes.includes(item.size))
+      )
         throw new AppError("Renk veya beden geçerli değil.");
       if (
         item.uploadId &&
@@ -286,12 +293,15 @@ export function createStore({ directory, seed, adminEmail, adminPassword }) {
       } catch (error) {
         throw new AppError(error.message);
       }
-      const variantDemand = p.id + "|" + options.key;
+      const variantDemand = p.id + "|" + options.stockKey;
       demand.set(variantDemand, (demand.get(variantDemand) || 0) + quantity);
       if (demand.get(variantDemand) > options.stock)
         throw new AppError("Varyasyon için yeterli stok yok.");
       return {
         variantKey: options.key,
+        stockKey: options.stockKey,
+        sku: options.sku,
+        managedVariations: p.managedVariations,
         optionSelections: options.selections,
         optionAnswers: options.answers,
         id: p.id,
@@ -378,10 +388,7 @@ export function createStore({ directory, seed, adminEmail, adminPassword }) {
           row("SELECT body FROM products WHERE id=?", item.id).body,
         );
         p.stock -= item.quantity;
-        const variant = p.variants?.find(
-          (variant) => variant.key === item.variantKey,
-        );
-        if (variant) variant.stock -= item.quantity;
+        reduceVariantStock(p, item);
         run("UPDATE products SET body=? WHERE id=?", JSON.stringify(p), p.id);
       }
       if (amounts.coupon) {
@@ -436,6 +443,9 @@ export function createStore({ directory, seed, adminEmail, adminPassword }) {
       existing = products(true).find((p) => p.id === id);
     const p = {
       ...existing,
+      variationRules: data.variationRules ?? existing?.variationRules,
+      managedVariations: data.managedVariations ?? existing?.managedVariations,
+      sku: data.sku ?? existing?.sku,
       id,
       name: clean(data.name, 140),
       kind: clean(data.kind, 100),

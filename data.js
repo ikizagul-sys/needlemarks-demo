@@ -2,6 +2,7 @@ import {
   normalizeOptions,
   resolveOptions,
   selectedVariant,
+  reduceVariantStock,
 } from "./product-options.js";
 import { normalizeContent, validateContent } from "./content-defaults.js";
 import {
@@ -180,7 +181,7 @@ export function quoteLocal(code = "") {
       .filter(
         (i) =>
           i.id === item.id &&
-          selectedVariant(product, i.selections).key === options.key,
+          selectedVariant(product, i.selections).stockKey === options.stockKey,
       )
       .reduce((sum, i) => sum + i.quantity, 0);
     if (total > options.stock)
@@ -266,6 +267,9 @@ export async function placeOrder(data) {
         image: p.image,
         price: resolveOptions(p, i).price,
         variantKey: resolveOptions(p, i).key,
+        stockKey: resolveOptions(p, i).stockKey,
+        sku: resolveOptions(p, i).sku,
+        managedVariations: p.managedVariations,
         optionSelections: resolveOptions(p, i).selections,
         optionAnswers: resolveOptions(p, i).answers,
       };
@@ -278,11 +282,11 @@ export async function placeOrder(data) {
   write("orders", orders);
   for (const [id, count] of demand)
     catalog.products.find((p) => p.id === id).stock -= count;
-  for (const item of order.items) {
-    const product = catalog.products.find((p) => p.id === item.id),
-      variant = product.variants?.find((row) => row.key === item.variantKey);
-    if (variant) variant.stock -= item.quantity;
-  }
+  for (const item of order.items)
+    reduceVariantStock(
+      catalog.products.find((p) => p.id === item.id),
+      item,
+    );
   if (amounts.coupon)
     catalog.coupons.find((c) => c.code === amounts.coupon).used++;
   saveDemoCatalog();

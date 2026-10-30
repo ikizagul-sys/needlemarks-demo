@@ -58,19 +58,39 @@ export function normalizeOptions(product) {
     return result;
   };
   const groups = product.variations ?? [];
-  if (!Array.isArray(groups) || groups.length > 2)
-    fail("En fazla 2 varyasyon grubu eklenebilir.");
+  if (!Array.isArray(groups) || groups.length > 3)
+    fail("En fazla 3 varyasyon grubu eklenebilir.");
   const variations = groups.map((group) => ({
     id: text(group.id, 80),
     name: text(group.name, 80),
     options: choices(group.options),
+    kind: ["size", "color", "placement"].includes(group.kind)
+      ? group.kind
+      : "custom",
+    markers: Object.fromEntries(
+      (group.options || []).map((value) => [
+        value,
+        [
+          "right-sleeve",
+          "left-sleeve",
+          "left-chest",
+          "center-chest",
+          "back",
+          "front",
+        ].includes(group.markers?.[value])
+          ? group.markers[value]
+          : "front",
+      ]),
+    ),
   }));
   for (const row of variations)
     if (!/^[\w-]+$/.test(row.id) || !row.name) fail("Varyasyon adını doldur.");
   unique(variations, "id");
   unique(variations, "name");
-  if (combinations(variations).length > 100)
-    fail("En fazla 100 varyasyon birleşimi oluşturulabilir.");
+  if (
+    variations.reduce((count, group) => count * group.options.length, 1) > 400
+  )
+    fail("En fazla 400 varyasyon birleşimi oluşturulabilir.");
   const rows = product.variants ?? [];
   if (!Array.isArray(rows)) fail("Varyasyon tablosu geçersiz.");
   const keys = variations.length
@@ -116,7 +136,15 @@ export function normalizeOptions(product) {
   });
   unique(customFields, "id");
   unique(customFields, "name");
-  return { variations, variants, customFields };
+  const variationRules = normalizeRules(product.variationRules, variations);
+  return {
+    variations,
+    variants,
+    customFields,
+    variationRules,
+    managedVariations: product.managedVariations === true,
+    sku: text(product.sku ?? "", 80),
+  };
 }
 export function selectedVariant(product, selected = {}) {
   const values = (product.variations || []).map((group) => {
@@ -131,15 +159,89 @@ export function selectedVariant(product, selected = {}) {
   const row = product.variants?.find((row) => row.key === key);
   if (product.variants?.length && !row)
     fail("Bu varyasyon artık satışta değil.");
+  const attribute = (type, fallback) => {
+    const rule = product.variationRules?.[type];
+    if (!rule?.enabled) return { value: fallback, key };
+    const selectedValues =
+      rule.scope === "*" ? values : [selected?.[rule.scope]];
+    const ruleKey = variantKey(selectedValues),
+      entry = rule.values.find((entry) => entry.key === ruleKey);
+    if (!entry) fail("Ürün seçenekleri değişmiş. Ürünü yeniden seç.");
+    return { value: entry.value, key: ruleKey };
+  };
+  const price = attribute("price", row?.price ?? product.price),
+    stock = attribute("stock", row?.stock ?? product.stock),
+    sku = attribute("sku", product.sku || "");
   return {
     key,
-    price: row?.price ?? product.price,
-    stock: Math.min(product.stock, row?.stock ?? product.stock),
+    price: price.value,
+    stock: Math.min(product.stock, stock.value),
+    stockKey: stock.key,
+    sku: sku.value,
     selections: (product.variations || []).map((group, i) => ({
       name: group.name,
       value: values[i],
     })),
   };
+}
+export function scopeCombinations(groups, scope) {
+  return combinations(
+    scope === "*" ? groups : groups.filter((group) => group.id === scope),
+  );
+}
+export function normalizeRules(input, groups) {
+  if (input === undefined) return undefined;
+  const result = {};
+  for (const type of ["price", "stock", "sku"]) {
+    const rule = input?.[type];
+    if (!rule?.enabled || !groups.length) {
+      result[type] = { enabled: false, scope: "*", values: [] };
+      continue;
+    }
+    if (rule.scope !== "*" && !groups.some((group) => group.id === rule.scope))
+      fail("Fiyat, stok veya ürün kodu için geçerli bir grup seç.");
+    const keys = scopeCombinations(groups, rule.scope).map(variantKey);
+    if (
+      !Array.isArray(rule.values) ||
+      rule.values.length !== keys.length ||
+      new Set(rule.values.map((entry) => entry.key)).size !== keys.length
+    )
+      fail("Varyasyon tablosunu yeniden oluştur.");
+    result[type] = {
+      enabled: true,
+      scope: rule.scope,
+      values: rule.values.map((entry) => {
+        if (!keys.includes(entry.key))
+          fail("Varyasyon tablosunu yeniden oluştur.");
+        return {
+          key: entry.key,
+          value:
+            type === "sku"
+              ? text(entry.value, 80)
+              : number(
+                  entry.value,
+                  type === "price" ? 1 : 0,
+                  type === "price" ? 100000000 : 100000,
+                ),
+        };
+      }),
+    };
+  }
+  return result;
+}
+export function reduceVariantStock(product, item) {
+  const rule = product.variationRules?.stock;
+  if (rule?.enabled) {
+    const entry = rule.values.find((entry) => entry.key === item.stockKey);
+    if (!entry || entry.value < item.quantity)
+      fail("Varyasyon için yeterli stok yok.");
+    entry.value -= item.quantity;
+  } else {
+    const variant = product.variants?.find(
+      (row) => row.key === item.variantKey,
+    );
+    if (variant) variant.stock -= item.quantity;
+  }
 }
 export function resolveOptions(product, item, ownsUpload = () => true) {
   const variant = selectedVariant(product, item.selections);

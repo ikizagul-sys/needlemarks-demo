@@ -2,8 +2,9 @@ import {
   normalizeOptions,
   resolveOptions,
   selectedVariant,
-} from "./product-options.js?v=8c35fd441fa1";
-import { normalizeContent, validateContent } from "./content-defaults.js?v=8c35fd441fa1";
+  reduceVariantStock,
+} from "./product-options.js?v=7df5bab2382c";
+import { normalizeContent, validateContent } from "./content-defaults.js?v=7df5bab2382c";
 import {
   defaultCategories,
   defaultCollections,
@@ -11,7 +12,7 @@ import {
   categoryDetails,
   productAssignments,
   assertRemovable,
-} from "./catalog-rules.js?v=8c35fd441fa1";
+} from "./catalog-rules.js?v=7df5bab2382c";
 export const mode = window.NEEDLEMARKS_CONFIG?.mode || "demo";
 export const read = (key, fallback) => {
   try {
@@ -28,7 +29,7 @@ export const write = (key, value) => {
   }
 };
 export const uid = () => crypto.randomUUID();
-const seed = await fetch("./data/catalog.json?v=8c35fd441fa1").then((r) => r.json());
+const seed = await fetch("./data/catalog.json?v=7df5bab2382c").then((r) => r.json());
 export let catalog = {
   products: read("products", seed.products),
   settings: read("settings", seed.settings),
@@ -180,7 +181,7 @@ export function quoteLocal(code = "") {
       .filter(
         (i) =>
           i.id === item.id &&
-          selectedVariant(product, i.selections).key === options.key,
+          selectedVariant(product, i.selections).stockKey === options.stockKey,
       )
       .reduce((sum, i) => sum + i.quantity, 0);
     if (total > options.stock)
@@ -266,6 +267,9 @@ export async function placeOrder(data) {
         image: p.image,
         price: resolveOptions(p, i).price,
         variantKey: resolveOptions(p, i).key,
+        stockKey: resolveOptions(p, i).stockKey,
+        sku: resolveOptions(p, i).sku,
+        managedVariations: p.managedVariations,
         optionSelections: resolveOptions(p, i).selections,
         optionAnswers: resolveOptions(p, i).answers,
       };
@@ -278,11 +282,11 @@ export async function placeOrder(data) {
   write("orders", orders);
   for (const [id, count] of demand)
     catalog.products.find((p) => p.id === id).stock -= count;
-  for (const item of order.items) {
-    const product = catalog.products.find((p) => p.id === item.id),
-      variant = product.variants?.find((row) => row.key === item.variantKey);
-    if (variant) variant.stock -= item.quantity;
-  }
+  for (const item of order.items)
+    reduceVariantStock(
+      catalog.products.find((p) => p.id === item.id),
+      item,
+    );
   if (amounts.coupon)
     catalog.coupons.find((c) => c.code === amounts.coupon).used++;
   saveDemoCatalog();
