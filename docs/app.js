@@ -6,26 +6,26 @@ import {
   inventoryChange,
   customerOptions,
   selectionsHTML,
-} from "./options-ui.js?v=474fc0684f0c";
+} from "./options-ui.js?v=8c35fd441fa1";
 import {
   fieldsFor,
   resolveOptions,
   selectedVariant,
-} from "./product-options.js?v=474fc0684f0c";
-import { categorySlug } from "./catalog-rules.js?v=474fc0684f0c";
+} from "./product-options.js?v=8c35fd441fa1";
+import { categorySlug } from "./catalog-rules.js?v=8c35fd441fa1";
 import {
   siteFooter,
   bannerEditor,
   legalEditor,
   legalBody,
-} from "./store-content.js?v=474fc0684f0c";
+} from "./store-content.js?v=8c35fd441fa1";
 import {
   productEditor,
   taxonomyPage,
   taxonomyEditor,
   categoryCover,
-} from "./admin-catalog.js?v=474fc0684f0c";
-import * as S from "./data.js?v=474fc0684f0c";
+} from "./admin-catalog.js?v=8c35fd441fa1";
+import * as S from "./data.js?v=8c35fd441fa1";
 const $ = (s, r = document) => r.querySelector(s),
   $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const esc = (v) =>

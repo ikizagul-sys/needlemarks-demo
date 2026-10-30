@@ -18,4 +18,6 @@ Kategori ekranı iki sütunlu fotoğraflı kartlara dönüştürüldü. Kapak fo
 
 ## 30 Ekim — ürün seçenekleri
 
-17 Node/SQLite testi geçti. Yeni kontroller: serbest başlıkların kaydı, tekrarlanan/geçersiz şema, zorunlu alan ve metin sınırı, geçersiz seçim, sunucunun belirlediği birleşim fiyatı, aynı birleşimde toplam stok, atomik stok düşümü, idempotency, sipariş anındaki alan adları/değerleri, çoklu fotoğraf sınırı ve sahiplik. Tarayıcıda ürün düzenleme → varyasyon ekleme → ayrı fiyat/stok → özel metin alanı → kaydet → müşteri seçimi → sepet → demo siparişi akışı doğrulandı. Örnek İki kol 2290 TL ve Milo değeri siparişe doğru taşındı.
+18 Node/SQLite testi geçti. Yeni kontroller: serbest başlıkların kaydı, tekrarlanan/geçersiz şema, zorunlu alan ve metin sınırı, geçersiz seçim, sunucunun belirlediği birleşim fiyatı, aynı birleşimde toplam stok, atomik stok düşümü, idempotency, sipariş anındaki alan adları/değerleri, çoklu fotoğraf sınırı ve sahiplik. Tarayıcıda ürün düzenleme → varyasyon ekleme → ayrı fiyat/stok → özel metin alanı → kaydet → müşteri seçimi → sepet → demo siparişi akışı doğrulandı. Örnek İki kol 2290 TL ve Milo değeri siparişe doğru taşındı.
+
+Temiz tarayıcıda ilk açılış ayrıca test edildi. Örnek sipariş verisi geçmiş kayıt gibi sabit fiyatla oluşturulur; yeni varyasyon seçimi beklemez. Boş localStorage ile demo başlangıcı ve kişiselleştirilmiş sipariş için regresyon testi eklendi.

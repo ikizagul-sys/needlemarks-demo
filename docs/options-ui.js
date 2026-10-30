@@ -3,7 +3,7 @@ import {
   combinations,
   variantKey,
   normalizeOptions,
-} from "./product-options.js?v=474fc0684f0c";
+} from "./product-options.js?v=8c35fd441fa1";
 const esc = (value) =>
   String(value ?? "").replace(
     /[&<>"']/g,

@@ -77,5 +77,7 @@ GitHub Pages eski JavaScript dosyalarını önbellekte tutabildiği için demo o
 - GitHub demosunda fotoğraf içeriği yüklenmez veya kalıcı saklanmaz; yalnızca seçilen dosyanın adı ve demo kimliği siparişte gösterilir. Gerçek sunucuda özel fotoğraflar korumalı saklanır.
 - Yeni ziyaretçiler için Çift nakışı ürününe örnek Nakış yeri, Sağ kol/Sol kol isimleri, iplik rengi ve 3 fotoğraf alanı eklendi. Önceden localStorage ile kaydedilmiş kataloglar otomatik değiştirilmez.
 - Yeni dosyalar: product-options.js (şema ve sipariş doğrulama), options-ui.js (yönetim alanları, birleşim tablosu, müşteri alanları). Statik sunucu izin listesine ve demo oluşturucusuna eklendi.
-- Doğrulama: 17 Node/SQLite testi başarılı. Tarayıcıda varyasyon oluşturuldu, İki kol fiyatı 2290 TL/stoku 3 yapıldı, Sağ kola yazılacak isim alanı eklendi, ürün kaydedildi, müşteri İki kol/Milo seçimiyle demo siparişi oluşturdu; fiyat ve tüm bilgiler siparişte görüldü.
+- Doğrulama: 18 Node/SQLite testi başarılı. Tarayıcıda varyasyon oluşturuldu, İki kol fiyatı 2290 TL/stoku 3 yapıldı, Sağ kola yazılacak isim alanı eklendi, ürün kaydedildi, müşteri İki kol/Milo seçimiyle demo siparişi oluşturdu; fiyat ve tüm bilgiler siparişte görüldü.
 - Etsy yalnızca davranış referansı: https://help.etsy.com/hc/en-us/articles/360000344528-How-to-Offer-Personalized-Listings ve https://help.etsy.com/hc/en-us/articles/115015664047-How-to-Add-Variations-to-Your-Listings . Etsy hesabına/API'sine bağlı değildir.
+
+Temiz tarayıcıda ilk açılış ayrıca test edildi. Örnek sipariş verisi geçmiş kayıt gibi sabit fiyatla oluşturulur; yeni varyasyon seçimi beklemez. Boş localStorage ile demo başlangıcı ve kişiselleştirilmiş sipariş için regresyon testi eklendi.

@@ -4,6 +4,7 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve, basename, sep } from "node:path";
 import { randomUUID } from "node:crypto";
+import { spawnSync } from "node:child_process";
 import { createStore } from "../server/store.mjs";
 import {
   normalizeOptions,
@@ -53,6 +54,28 @@ const order = (key = randomUUID()) => ({
   coupon: "ILKILMEK10",
   customer,
   consent: true,
+});
+test('temiz tarayıcıda demo açılır ve kişiselleştirme siparişi oluşturulur',()=>{
+  const script=`
+    import assert from 'node:assert/strict';
+    import {readFileSync} from 'node:fs';
+    const seed=JSON.parse(readFileSync('./data/catalog.json','utf8'));
+    globalThis.window={NEEDLEMARKS_CONFIG:{mode:'demo'}};
+    const saved=new Map();
+    globalThis.localStorage={getItem:key=>saved.get(key)??null,setItem:(key,value)=>saved.set(key,value)};
+    globalThis.fetch=async()=>({json:async()=>structuredClone(seed)});
+    const S=await import('./data.js');
+    assert.equal((await S.getOrders()).length,3);
+    const p=S.catalog.products.find(p=>p.id==='together');
+    S.cart.push({id:p.id,key:'sample',quantity:1,color:p.colors[0],size:p.sizes[0],selections:{placement:'İki kol'},answers:{'right-name':'Milo','left-name':'Luna',thread:'Bordo',photos:[]}});
+    assert.equal(S.quoteLocal().subtotal,p.price);
+    const order=await S.placeOrder({idempotencyKey:'fresh-browser-test',customer:{name:'Deniz Örnek'}});
+    assert.equal(order.items[0].optionSelections[0].value,'İki kol');
+    assert.equal(order.items[0].optionAnswers[0].value,'Milo');
+    assert.equal(S.cart.length,0);
+  `;
+  const result=spawnSync(process.execPath,['--input-type=module','-e',script],{cwd:new URL('..',import.meta.url),encoding:'utf8'});
+  assert.equal(result.status,0,result.stderr);
 });
 function customized(s) {
   const p = s.products(true).find((p) => p.id === "lucky");

@@ -2,8 +2,8 @@ import {
   normalizeOptions,
   resolveOptions,
   selectedVariant,
-} from "./product-options.js?v=474fc0684f0c";
-import { normalizeContent, validateContent } from "./content-defaults.js?v=474fc0684f0c";
+} from "./product-options.js?v=8c35fd441fa1";
+import { normalizeContent, validateContent } from "./content-defaults.js?v=8c35fd441fa1";
 import {
   defaultCategories,
   defaultCollections,
@@ -11,7 +11,7 @@ import {
   categoryDetails,
   productAssignments,
   assertRemovable,
-} from "./catalog-rules.js?v=474fc0684f0c";
+} from "./catalog-rules.js?v=8c35fd441fa1";
 export const mode = window.NEEDLEMARKS_CONFIG?.mode || "demo";
 export const read = (key, fallback) => {
   try {
@@ -28,7 +28,7 @@ export const write = (key, value) => {
   }
 };
 export const uid = () => crypto.randomUUID();
-const seed = await fetch("./data/catalog.json?v=474fc0684f0c").then((r) => r.json());
+const seed = await fetch("./data/catalog.json?v=8c35fd441fa1").then((r) => r.json());
 export let catalog = {
   products: read("products", seed.products),
   settings: read("settings", seed.settings),
@@ -71,10 +71,7 @@ if (!Array.isArray(orders))
               name: p.name,
               kind: p.kind,
               image: p.image,
-              price: resolveOptions(p, i).price,
-              variantKey: resolveOptions(p, i).key,
-              optionSelections: resolveOptions(p, i).selections,
-              optionAnswers: resolveOptions(p, i).answers,
+              price: p.price,
               quantity: 1,
               color: p.colors[0],
               size: p.sizes[0],
