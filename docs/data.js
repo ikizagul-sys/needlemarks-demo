@@ -1,4 +1,4 @@
-import { normalizeContent, validateContent } from "./content-defaults.js";
+import { normalizeContent, validateContent } from "./content-defaults.js?v=a0706e261e17";
 import {
   defaultCategories,
   defaultCollections,
@@ -6,7 +6,7 @@ import {
   categoryDetails,
   productAssignments,
   assertRemovable,
-} from "./catalog-rules.js";
+} from "./catalog-rules.js?v=a0706e261e17";
 export const mode = window.NEEDLEMARKS_CONFIG?.mode || "demo";
 export const read = (key, fallback) => {
   try {
@@ -23,7 +23,7 @@ export const write = (key, value) => {
   }
 };
 export const uid = () => crypto.randomUUID();
-const seed = await fetch("./data/catalog.json").then((r) => r.json());
+const seed = await fetch("./data/catalog.json?v=a0706e261e17").then((r) => r.json());
 export let catalog = {
   products: read("products", seed.products),
   settings: read("settings", seed.settings),

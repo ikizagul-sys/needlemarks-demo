@@ -61,3 +61,7 @@ Değişikliklerden sonra `node scripts/build-demo.mjs` çalıştırın. Kaynak d
 ## Devam edilecek yer
 
 Son bırakılan bölüm Yönetim → Kategoriler. Kart düzeni ve kayıt işlemleri tamamlandı; kullanıcının sonraki düzenleme isteği bekleniyor. Gerçek ürün/kategori fotoğrafları, kesin içerikler ve ticari metinler henüz marka tarafından sağlanmadı. Gerçek ödeme, kargo, e-posta, faturalama ve üretim yayını bağlı değil. Bu işleri tamamlanmış gibi sunmayın ve kullanıcı istemeden satışa açmayın.
+
+## Dağıtım önbelleği notu
+
+GitHub Pages eski JavaScript dosyalarını önbellekte tutabildiği için demo oluşturucusu statik dosyalardan bir sürüm özeti hesaplar. docs/index.html içindeki JS/CSS bağlantıları, docs/ altındaki modül importları ve katalog isteği bu sürümü ?v= ile taşır. Kaynak dosyalarını elle sürümlemeyin; her güncellemede `node scripts/build-demo.mjs` çalıştırmak yeterlidir. Yeni sürümü ilk kez kontrol ederken demo adresine de ?v=SURUM eklenebilir.

@@ -1,17 +1,17 @@
-import { categorySlug } from "./catalog-rules.js";
+import { categorySlug } from "./catalog-rules.js?v=a0706e261e17";
 import {
   siteFooter,
   bannerEditor,
   legalEditor,
   legalBody,
-} from "./store-content.js";
+} from "./store-content.js?v=a0706e261e17";
 import {
   productEditor,
   taxonomyPage,
   taxonomyEditor,
   categoryCover,
-} from "./admin-catalog.js";
-import * as S from "./data.js";
+} from "./admin-catalog.js?v=a0706e261e17";
+import * as S from "./data.js?v=a0706e261e17";
 const $ = (s, r = document) => r.querySelector(s),
   $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const esc = (v) =>

@@ -1,4 +1,4 @@
-import { assignmentCount, categorySlug } from "./catalog-rules.js";
+import { assignmentCount, categorySlug } from "./catalog-rules.js?v=a0706e261e17";
 
 const esc = (value) =>
   String(value ?? "").replace(
