@@ -3,7 +3,7 @@ import {resolve} from 'node:path';
 import {createHash} from 'node:crypto';
 const root=process.cwd(),target=resolve(root,'docs');
 if(!target.startsWith(root+'\\')&&!target.startsWith(root+'/'))throw new Error('Geçersiz çıktı yolu');
-const modules=['product-options.js','options-ui.js','app.js','data.js','catalog-rules.js','admin-catalog.js','content-defaults.js','store-content.js','config.js'];
+const modules=['demo-storage.js','product-options.js','options-ui.js','app.js','data.js','catalog-rules.js','admin-catalog.js','content-defaults.js','store-content.js','config.js'];
 const digest=createHash('sha256');
 for(const name of [...modules,'index.html','styles.css','data/catalog.json'])digest.update(await readFile(resolve(root,name)));
 const version=digest.digest('hex').slice(0,12);

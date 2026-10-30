@@ -41,7 +41,7 @@ Pasif kategori mağaza kategori menülerinde ve footer'da gösterilmez; doğruda
 
 ## İki çalışma biçimi — önemli
 
-GitHub Pages yalnızca statik demo sunar. Panel değişiklikleri ziyaretçinin kendi tarayıcısındaki localStorage'a kaydedilir; başka cihazları veya GitHub kaynak dosyalarını değiştirmez. Demo kişisel fotoğrafı sunucuya göndermez. Paylaşılan başlangıç verileri `data/catalog.json` dosyasındadır.
+GitHub Pages yalnızca statik demo sunar. Panel değişiklikleri ziyaretçinin kendi tarayıcısındaki IndexedDB veritabanına kaydedilir; başka cihazları veya GitHub kaynak dosyalarını değiştirmez. Demo kişisel fotoğrafı sunucuya göndermez. Paylaşılan başlangıç verileri `data/catalog.json` dosyasındadır.
 
 Yerel Node.js sürümünde gerçek SQLite kayıtları, parola/oturum ve yetki kontrolü vardır. Para kuruş cinsinden hesaplanır; sipariş/stok/kupon aynı transaction'dadır. Özel müşteri fotoğrafları ile herkese açık ürün/kategori kapakları ayrı disk alanlarında tutulur.
 
@@ -95,3 +95,16 @@ Temiz tarayıcıda ilk açılış ayrıca test edildi. Örnek sipariş verisi ge
 - Yeni ziyaretçi örneği: Çift nakışı ürününde beden/renk/4 nakış konumu, konuma göre fiyat, bedene göre stok ve ortak SKU. Önceden localStorage'a kaydedilmiş ürünler kullanıcı değişiklikleri korunarak bırakılır.
 - 21 test geçti: önceki 18 teste ek olarak bağımsız fiyat/stok/SKU kapsamı, grup stok havuzunun farklı renk/konumlarla aşılamaması, kapalı ayarlarda ortak değer ve varyasyonsuz ürün siparişi. Temiz tarayıcı demo başlangıcı testi yeni örneğe uyarlandı.
 - Tarayıcıda 3 grup oluşturuldu; fiyat nakış konumuna, stok bedene, SKU renge bağlandı. M / Yeşil / Sağ kol seçimiyle 2190 TL ürün fiyatı ve NM-YESIL SKU siparişe geçti; görselli konum kartları doğrulandı.
+
+## Son düzeltme: 5 MB fotoğraflar, vitrin sürükle-bırak ve depolama hatası
+
+- Hatanın nedeni: ürün galerisinde dosya başına 5 MB denetimine ek olarak tüm fotoğraflar için 2 MB toplam demo sınırı vardı. İkinci 1,5 MB dosya bu yüzden reddediliyordu. Aynı fotoğrafın hem image hem images içinde base64 olarak localStorage'a yazılması küçük JSON kotasını da dolduruyordu.
+- Toplam 2 MB sınırı kaldırıldı. Ürün, vitrin, kategori ve banner görsellerinde dosya başına 5 MB PNG/JPEG/WebP. Ürün başına 8 fotoğraf sınırı korunur.
+- Yeni demo-storage.js: metadata ve ikili fotoğraflar IndexedDB içindeki records/images tablolarında. JSON yalnızca nm-image:UUID referansları içerir. Açılışta Blob URL'leri yeniden oluşturulur. Fotoğraflar tekrar tekrar base64 JSON'a kopyalanmaz.
+- Eski nm2-* localStorage kayıtları, siparişler ve fotoğraflar korunarak taşınır. Eski anahtarlar yalnızca başarılı atomik IndexedDB işleminden sonra kaldırılır. Başarısız taşımada eski veri kalır. Kullanıcıya tarayıcı verilerini silmesini söylemeyin.
+- Ürün kaydı IndexedDB işlemi bitene kadar bekler. Başarısız ürün kaydı ürün listesini bellekte değiştirmez. Gerçek tarayıcı/cihaz kotası veya tamamen engellenmiş depolama halinde anlaşılır hata gösterilir; kalıcı kayıt olmadan başarı mesajı verilmez.
+- Vitrin için ayrı bırakma alanı var. Bilgisayardan tek dosya bırakılır/seçilir veya galerideki bir küçük fotoğraf sürüklenir. İçeriden sürükleme dosya sayısını artırmadan seçilen fotoğrafı ilk sıraya alır. Tıklayarak kapak seçme de korunur.
+- 23 Node/SQLite testi başarılı: 5 MB sınırı (1,5 MB / 4,9 MB / tam 5 MB kabul; 5 MB+1 bayt ret), yanlış dosya türü, kapak değişiminde diğer fotoğrafların korunması dahil.
+- Gerçek tarayıcı depolama regresyon sayfası (work/storage-qa): base64 eski ürün taşınması, başarı sonrası eski ağır JSON'un kaldırılması, dolu localStorage'a rağmen 1,5+4,9 MB görsel ve katalog kaydı, 5 MB üzerinin reddi, yenileme sonrası iki Blob'un doğru byte boyutu ve localStorage erişimi kapalıyken metadata kaydı geçti.
+- Uygulama arayüzünde 1,5 MB ve 4,9 MB dosyalar birlikte yüklendi, galeri 1'den 3 fotoğrafa çıktı. İkinci fotoğraf sürüklenerek vitrin yapıldı; ürün kaydedilip sayfa yenilendi, 3 görsel ve seçilen vitrin korundu.
+- Yeni modül demo oluşturucusuna ve yerel statik sunucu izin listesine eklendi. GitHub demosu halen yalnızca aynı tarayıcıya kayıt yapar; müşteriler arasında ortak veritabanı değildir.

@@ -8,7 +8,7 @@ Mağaza: https://ikizagul-sys.github.io/needlemarks-demo/
 
 Panel: https://ikizagul-sys.github.io/needlemarks-demo/#/admin
 
-GitHub demosunda **Demo paneli aç** düğmesini kullanın. Hesap ve yönetim ekranları örnek verilerle açılır. Değişiklikler sadece aynı tarayıcının localStorage alanında saklanır; başka cihazlara aktarılmaz. Başlangıçta üç açıkça işaretli örnek sipariş vardır. Panelden demo verileri sıfırlanabilir. Gerçek kişisel bilgiler yerine örnek bilgiler kullanın.
+GitHub demosunda **Demo paneli aç** düğmesini kullanın. Hesap ve yönetim ekranları örnek verilerle açılır. Değişiklikler sadece aynı tarayıcının IndexedDB veritabanında saklanır; başka cihazlara aktarılmaz. Başlangıçta üç açıkça işaretli örnek sipariş vardır. Panelden demo verileri sıfırlanabilir. Gerçek kişisel bilgiler yerine örnek bilgiler kullanın.
 
 ## Yerel sunucu ve veritabanı
 
@@ -51,7 +51,7 @@ Mağaza: `http://127.0.0.1:4185/` · Panel: `http://127.0.0.1:4185/#/admin`
 | Müşteri hesabı | Örnek hesap düğmesi | E-posta/parola ve sunucu oturumu |
 | Yönetim | İşaretli demo paneli | Her yönetim API çağrısında rol kontrolü |
 | Kişisel fotoğraf | Açık oturumda önizleme | Özel disk alanı; sahip oturum veya yönetici |
-| Ürün fotoğrafı | Tarayıcıda; toplam 2 MB sınırı | Görsel başına 5 MB, herkese açık ürün görseli |
+| Ürün fotoğrafı | Tarayıcıda IndexedDB; görsel başına 5 MB | Görsel başına 5 MB, herkese açık ürün görseli |
 | Gerçek ödeme/gönderim | Kapalı | Kapalı |
 
 ## Sunucu kuralları
@@ -97,3 +97,5 @@ Logo kullanıcı tarafından sağlandı. Dört görsel yerleşik Imagegen ile de
 Koleksiyonlar ve Kategoriler ayrı menülerden eklenir/düzenlenir. Ürün formunda bir kategori ve isteğe bağlı birden fazla koleksiyon seçilir. Kullanılan bir grubu silmek için önce ürünleri başka gruba taşımak gerekir. Ad değişiklikleri ürün bağlarını korur. Mağaza ve alt menü kategorileri aynı kayıtları kullanır.
 
 Bannerlar bölümünde ana sayfa başlığı, açıklama, buton, görsel ve görünürlük; Kargo & duyuru bölümünde kargo tutarı/eşiği ve duyuru; Yasal metinler bölümünde bilgi sayfalarının başlığı ve metni düzenlenir. Footer Keşfet, Yanındayız ve Bilmen gerekenler olarak gruplandı. Başlangıç bilgi metinleri demo taslağıdır.
+
+Fotoğraflar ikili dosya olarak tarayıcıda saklanır; ürün JSON kayıtlarına base64 olarak eklenmez. Eski localStorage kayıtları ilk açılışta fotoğraflarıyla birlikte taşınır. Eski anahtarlar ancak başarılı veritabanı kaydından sonra kaldırılır. Ürün galerisinde toplam 8 fotoğraf eklenebilir; her dosya en fazla 5 MB olmalıdır. Vitrin alanına dosya veya galerideki fotoğraf sürüklenebilir. Değişikliklerin kalıcı olması için ürünü kaydedin.

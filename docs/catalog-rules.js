@@ -99,10 +99,10 @@ export function categoryDetails(data, records, id, allowDataImages = false) {
       !/^(assets\/[a-zA-Z0-9._-]+|media\/[a-f0-9-]+)\.(webp|png|jpg)$/.test(
         image,
       ) &&
-      !(
-        allowDataImages &&
-        /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(image)
-      ))
+      !(typeof allowDataImages === "function"
+        ? allowDataImages(image)
+        : allowDataImages &&
+          /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(image)))
   )
     throw new Error("Geçerli bir kategori fotoğrafı seç.");
   if (data.active !== undefined && typeof data.active !== "boolean")

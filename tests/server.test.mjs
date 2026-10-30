@@ -6,6 +6,7 @@ import { join, resolve, basename, sep } from "node:path";
 import { randomUUID } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { createStore } from "../server/store.mjs";
+import { validatePhoto, moveToCover } from "../demo-storage.js";
 import {
   normalizeOptions,
   resolveOptions,
@@ -54,6 +55,21 @@ const order = (key = randomUUID()) => ({
   coupon: "ILKILMEK10",
   customer,
   consent: true,
+});
+test("fotoğraf sınırı her dosya için 5 MB: 1.5 MB ve 5 MB kabul, üstü reddedilir", () => {
+  for (const size of [1.5 * 1024 * 1024, 4.9 * 1024 * 1024, 5 * 1024 * 1024])
+    assert.doesNotThrow(() => validatePhoto({ size, type: "image/webp" }));
+  assert.throws(
+    () => validatePhoto({ size: 5 * 1024 * 1024 + 1, type: "image/webp" }),
+    /5 MB/,
+  );
+  assert.throws(() => validatePhoto({ size: 100, type: "text/html" }), /5 MB/);
+});
+test("vitrin seçimi diğer fotoğrafları korur ve galeri sırasını değiştirmez", () => {
+  const images = ["bir", "iki", "uc"];
+  assert.deepEqual(moveToCover(images, 2), ["uc", "bir", "iki"]);
+  assert.deepEqual(images, ["bir", "iki", "uc"]);
+  assert.throws(() => moveToCover(images, 9), /geçerli/);
 });
 test("temiz tarayıcıda demo açılır ve kişiselleştirme siparişi oluşturulur", () => {
   const script = `

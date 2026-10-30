@@ -25,3 +25,7 @@ Temiz tarayıcıda ilk açılış ayrıca test edildi. Örnek sipariş verisi ge
 ## 30 Ekim — Etsy benzeri varyasyon yönetimi
 
 21 test başarılı. Bağımsız fiyat/stok/SKU grupları ve grup stok havuzunu aşma denemeleri test edildi. Kapalı ayarlar ortak fiyat/stok/SKU'ya döner; varyasyonsuz ürün seçim istemez. Tarayıcıda beden/renk/konum kartları, konum türü ve tişört işaretleri, bağımsız kapsam seçimi, ürün kaydı, müşteri radyo kartı, sepette doğru fiyat ve demo siparişinde SKU doğrulandı.
+
+## 30 Ekim — çoklu fotoğraf ve depolama regresyonu
+
+23 Node testi başarılı. Gerçek IndexedDB tarayıcı testinde eski base64 fotoğraf taşıma, eski ürün adının korunması, dolu localStorage ile 1,5+4,9 MB fotoğraf ve metadata kaydı, 5 MB+1 byte ret, yenilemede doğru Blob boyutları ve localStorage tamamen kapalıyken kayıt kontrol edildi. Arayüzde iki dosya birlikte yüklendi, galeri 3 fotoğraf oldu; ikinci fotoğraf sürüklenerek vitrin yapıldı, ürün kaydedilip yeniden açıldı ve fotoğraflar korundu. Kullanıcı verilerini sıfırlama gerekmedi.

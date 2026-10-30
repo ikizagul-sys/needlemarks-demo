@@ -1,3 +1,4 @@
+import { validatePhoto, moveToCover } from "./demo-storage.js?v=9d17c35580d4";
 import {
   renderOptions,
   readOptions,
@@ -8,26 +9,26 @@ import {
   showVariationManager,
   customerOptions,
   selectionsHTML,
-} from "./options-ui.js?v=7df5bab2382c";
+} from "./options-ui.js?v=9d17c35580d4";
 import {
   fieldsFor,
   resolveOptions,
   selectedVariant,
-} from "./product-options.js?v=7df5bab2382c";
-import { categorySlug } from "./catalog-rules.js?v=7df5bab2382c";
+} from "./product-options.js?v=9d17c35580d4";
+import { categorySlug } from "./catalog-rules.js?v=9d17c35580d4";
 import {
   siteFooter,
   bannerEditor,
   legalEditor,
   legalBody,
-} from "./store-content.js?v=7df5bab2382c";
+} from "./store-content.js?v=9d17c35580d4";
 import {
   productEditor,
   taxonomyPage,
   taxonomyEditor,
   categoryCover,
-} from "./admin-catalog.js?v=7df5bab2382c";
-import * as S from "./data.js?v=7df5bab2382c";
+} from "./admin-catalog.js?v=9d17c35580d4";
+import * as S from "./data.js?v=9d17c35580d4";
 const $ = (s, r = document) => r.querySelector(s),
   $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const esc = (v) =>
@@ -571,8 +572,7 @@ document.addEventListener("click", async (event) => {
       ];
     }
     if (t.dataset.cover !== undefined) {
-      const image = editorImages.splice(Number(t.dataset.cover), 1)[0];
-      editorImages.unshift(image);
+      editorImages = moveToCover(editorImages, Number(t.dataset.cover));
       renderEditorGallery();
     }
     if (t.dataset.removeImage !== undefined) {
@@ -720,7 +720,7 @@ document.addEventListener("click", async (event) => {
       modal(
         '<div class="editor-form"><h2>Örnek verileri sıfırla?</h2><p>Bu tarayıcıdaki demo siparişler, ürün değişiklikleri, sepet ve favoriler başlangıç durumuna döner. Yerel sunucu veritabanı etkilenmez.</p><button class="button button-dark" data-action="confirm-reset">Demo verilerini sıfırla</button></div>',
       );
-    if (action === "confirm-reset") S.resetDemo();
+    if (action === "confirm-reset") await S.resetDemo();
     if (action === "size-guide")
       modal(
         '<div class="editor-form"><div class="eyebrow">ÖRNEK BEDEN REHBERİ</div><h2>Kendine uygun olanı bul.</h2><p>Bu ölçüler yalnızca tasarım örneğidir. Gerçek ürün ölçüleri marka tarafından doğrulanmalıdır.</p><table><thead><tr><th>Beden</th><th>Göğüs eni</th><th>Boy</th></tr></thead><tbody><tr><td>S</td><td>52 cm</td><td>66 cm</td></tr><tr><td>M</td><td>55 cm</td><td>69 cm</td></tr><tr><td>L</td><td>58 cm</td><td>72 cm</td></tr><tr><td>XL</td><td>61 cm</td><td>75 cm</td></tr></tbody></table></div>',
@@ -786,6 +786,10 @@ document.addEventListener("change", async (event) => {
         status.textContent = `En fazla ${field.maxFiles} fotoğraf; JPG, PNG veya WebP ve dosya başına 5 MB.`;
       } else status.textContent = files.map((file) => file.name).join(" · ");
     }
+    if (event.target.id === "coverPhoto") {
+      await addProductFiles([...event.target.files], true);
+      event.target.value = "";
+    }
     if (event.target.id === "productPhotos") {
       await addProductFiles([...event.target.files]);
       event.target.value = "";
@@ -798,11 +802,11 @@ document.addEventListener("change", async (event) => {
       const file = event.target.files[0];
       if (!file) return;
       if (
-        file.size > (S.mode === "demo" ? 2 : 5) * 1024 * 1024 ||
+        file.size > 5 * 1024 * 1024 ||
         !["image/jpeg", "image/png", "image/webp"].includes(file.type)
       )
         throw new Error(
-          "JPG, PNG veya WebP fotoğraf seç. Demo için en fazla 2 MB.",
+          "JPG, PNG veya WebP fotoğraf seç. Her görsel en fazla 5 MB olabilir.",
         );
       const button = $('[data-form="taxonomy"] button[type="submit"]');
       button.disabled = true;
@@ -820,11 +824,11 @@ document.addEventListener("change", async (event) => {
       const file = event.target.files[0];
       if (!file) return;
       if (
-        file.size > (S.mode === "demo" ? 2 : 5) * 1024 * 1024 ||
+        file.size > 5 * 1024 * 1024 ||
         !["image/jpeg", "image/png", "image/webp"].includes(file.type)
       )
         throw new Error(
-          "JPG, PNG veya WebP görsel seç. Demo için en fazla 2 MB.",
+          "JPG, PNG veya WebP görsel seç. Her görsel en fazla 5 MB olabilir.",
         );
       const submit = $('[data-form="banner"] button[type="submit"]');
       submit.disabled = true;
@@ -1184,35 +1188,32 @@ await render();
 
 function renderEditorGallery() {
   if (!$("#editorGallery")) return;
+  const cover = $("#coverPreview");
+  if (cover)
+    cover.innerHTML = editorImages[0]
+      ? `<img src="${esc(editorImages[0])}" alt="Vitrin görseli"><span>Vitrin görselini değiştir</span>`
+      : "<span>Vitrin görselini buraya bırak</span>";
+
   if ($("#photoCount"))
     $("#photoCount").textContent = editorImages.length + " / 8";
   $("#editorGallery").innerHTML = editorImages
     .map(
       (image, i) =>
-        `<div><button type="button" data-cover="${i}" aria-label="${i + 1}. görseli kapak seç"><img src="${esc(image)}" alt="Ürün fotoğrafı ${i + 1}"></button><span>${i === 0 ? "Kapak" : i + 1 + ". görsel"}</span><button type="button" class="remove-item" data-remove-image="${i}">Kaldır</button></div>`,
+        `<div draggable="true" data-gallery-drag="${i}" title="Vitrin alanına sürükleyerek kapak yap"><button type="button" data-cover="${i}" aria-label="${i + 1}. görseli kapak seç"><img src="${esc(image)}" alt="Ürün fotoğrafı ${i + 1}"></button><span>${i === 0 ? "Kapak" : i + 1 + ". görsel"}</span><button type="button" class="remove-item" data-remove-image="${i}">Kaldır</button></div>`,
     )
     .join("");
 }
 
-async function addProductFiles(files) {
+async function addProductFiles(files, asCover = false) {
   if (uploading) return;
   if (editorImages.length + files.length > 8)
     throw new Error("En fazla 8 fotoğraf eklenebilir.");
-  const total =
-    files.reduce((sum, file) => sum + file.size, 0) +
-    editorImages
-      .filter((image) => image.startsWith("data:"))
-      .reduce((sum, image) => sum + image.length * 0.75, 0);
-  if (S.mode === "demo" && total > 2 * 1024 * 1024)
-    throw new Error("Demo için toplam 2 MB altında fotoğraflar seç.");
-  for (const file of files)
-    if (
-      file.size > 5 * 1024 * 1024 ||
-      !["image/png", "image/jpeg", "image/webp"].includes(file.type)
-    )
-      throw new Error(
-        "JPG, PNG veya WebP fotoğraf seç. Her fotoğraf en fazla 5 MB olabilir.",
-      );
+  if (asCover && files.length !== 1)
+    throw new Error(
+      "Vitrin için tek fotoğraf bırak. Diğer fotoğrafları galeri alanına ekleyebilirsin.",
+    );
+  files.forEach(validatePhoto);
+  if (!files.length) return;
   uploading = true;
   const form = $('[data-form="product-admin"]');
   const buttons = $$('button[type="submit"]', form);
@@ -1223,7 +1224,8 @@ async function addProductFiles(files) {
     const images = await Promise.all(
       files.map((file) => S.uploadProductPhoto(file)),
     );
-    editorImages.push(...images);
+    if (asCover) editorImages.unshift(...images);
+    else editorImages.push(...images);
     renderEditorGallery();
     status.textContent = "Fotoğraflar eklendi.";
   } finally {
@@ -1233,18 +1235,45 @@ async function addProductFiles(files) {
       status.textContent = "";
   }
 }
+document.addEventListener("dragstart", (event) => {
+  const item = event.target.closest("[data-gallery-drag]");
+  if (!item) return;
+  event.dataTransfer.setData(
+    "application/x-needlemarks-photo",
+    item.dataset.galleryDrag,
+  );
+  event.dataTransfer.effectAllowed = "move";
+});
 for (const name of ["dragover", "dragleave", "drop"])
   document.addEventListener(name, async (event) => {
     const zone = event.target.closest("[data-product-dropzone]");
     if (!zone) return;
     event.preventDefault();
     zone.classList.toggle("dragging", name === "dragover");
-    if (name === "drop")
-      try {
-        await addProductFiles([...event.dataTransfer.files]);
-      } catch (error) {
-        $("#photoUploadStatus").textContent = error.message;
-      }
+    if (name === "dragover")
+      event.dataTransfer.dropEffect = [...event.dataTransfer.types].includes(
+        "application/x-needlemarks-photo",
+      )
+        ? "move"
+        : "copy";
+    if (name !== "drop") return;
+    try {
+      const index = event.dataTransfer.getData(
+        "application/x-needlemarks-photo",
+      );
+      if (index !== "" && zone.hasAttribute("data-upload-cover")) {
+        editorImages = moveToCover(editorImages, Number(index));
+        renderEditorGallery();
+        $("#photoUploadStatus").textContent =
+          "Vitrin görseli değiştirildi. Ürünü kaydetmeyi unutma.";
+      } else
+        await addProductFiles(
+          [...event.dataTransfer.files],
+          zone.hasAttribute("data-upload-cover"),
+        );
+    } catch (error) {
+      $("#photoUploadStatus").textContent = error.message;
+    }
   });
 
 function applyHomeBanner() {

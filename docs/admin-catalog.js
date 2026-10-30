@@ -1,5 +1,5 @@
-import { optionsEditor } from "./options-ui.js?v=7df5bab2382c";
-import { assignmentCount, categorySlug } from "./catalog-rules.js?v=7df5bab2382c";
+import { optionsEditor } from "./options-ui.js?v=9d17c35580d4";
+import { assignmentCount, categorySlug } from "./catalog-rules.js?v=9d17c35580d4";
 
 const esc = (value) =>
   String(value ?? "").replace(
@@ -22,10 +22,10 @@ export function productEditor(product, categories, collections, demo) {
           <label>Açıklama <span class="optional-label">İsteğe bağlı</span><textarea name="description" maxlength="3000" rows="3" placeholder="Müşterinin ürün hakkında bilmesi gerekenler…">${esc(product.description)}</textarea></label>
         </section>
         <section class="editor-card photo-card"><div class="editor-card-heading"><h2>Fotoğraflar</h2><span id="photoCount">0 / 8</span></div>
-          <label class="product-dropzone" data-product-dropzone for="productPhotos">${uploadIcon}<strong>Fotoğrafları buraya bırak</strong><span>veya <u>dosya seç</u></span><small>JPG, PNG veya WebP · En fazla 8 fotoğraf</small></label>
+          <label class="cover-dropzone" data-product-dropzone data-upload-cover for="coverPhoto"><div id="coverPreview"></div><small>Dosya bırak veya galerideki bir görseli buraya sürükle · En fazla 5 MB</small></label><input class="visually-hidden" id="coverPhoto" type="file" accept="image/png,image/jpeg,image/webp"><label class="product-dropzone" data-product-dropzone for="productPhotos">${uploadIcon}<strong>Fotoğrafları buraya bırak</strong><span>veya <u>dosya seç</u></span><small>JPG, PNG veya WebP · Her biri en fazla 5 MB · Toplam 8 fotoğraf</small></label>
           <input class="visually-hidden" id="productPhotos" type="file" multiple accept="image/png,image/jpeg,image/webp">
           <div id="photoUploadStatus" class="photo-upload-status" role="status"></div><div id="editorGallery" class="editor-gallery"></div>
-          <div class="photo-card-footer"><span>İlk fotoğraf ürünün kapak görselidir.</span>${demo ? '<button type="button" class="subtle-link" data-action="sample-photo">Demo fotoğrafı kullan</button>' : ""}</div>
+          <div class="photo-card-footer"><span>Vitrin görseli ilk sırada. Galeriden sürükleyerek veya tıklayarak değiştir.</span>${demo ? '<button type="button" class="subtle-link" data-action="sample-photo">Demo fotoğrafı kullan</button>' : ""}</div>
         </section>
         ${optionsEditor(product)}
         <details class="editor-card extra-product-info"><summary><span>Ek bilgiler</span><small>Malzeme ve bakım</small><span class="details-chevron">⌄</span></summary><div class="extra-product-fields"><label>Ortak ürün kodu (SKU)<input name="sku" value="${esc(product.sku || "")}" maxlength="80" placeholder="Örn. NM-TS-001"></label><label>Malzeme<input name="material" value="${esc(product.material)}" maxlength="600"></label><label>Bakım önerisi<input name="care" value="${esc(product.care)}" maxlength="600"></label></div></details>

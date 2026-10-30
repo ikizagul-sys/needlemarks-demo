@@ -4,7 +4,7 @@ import {
   variantKey,
   normalizeOptions,
   scopeCombinations,
-} from "./product-options.js?v=7df5bab2382c";
+} from "./product-options.js?v=9d17c35580d4";
 const esc = (value) =>
   String(value ?? "").replace(
     /[&<>"']/g,

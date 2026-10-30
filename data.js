@@ -1,3 +1,4 @@
+import * as D from "./demo-storage.js";
 import {
   normalizeOptions,
   resolveOptions,
@@ -14,20 +15,9 @@ import {
   assertRemovable,
 } from "./catalog-rules.js";
 export const mode = window.NEEDLEMARKS_CONFIG?.mode || "demo";
-export const read = (key, fallback) => {
-  try {
-    return JSON.parse(localStorage.getItem("nm2-" + key)) ?? fallback;
-  } catch {
-    return fallback;
-  }
-};
-export const write = (key, value) => {
-  try {
-    localStorage.setItem("nm2-" + key, JSON.stringify(value));
-  } catch {
-    throw new Error("Tarayıcı depolaması dolu veya kullanıma kapalı.");
-  }
-};
+if (mode === "demo") await D.initialize();
+export const read = D.read;
+export const write = D.write;
 export const uid = () => crypto.randomUUID();
 const seed = await fetch("./data/catalog.json").then((r) => r.json());
 export let catalog = {
@@ -132,11 +122,14 @@ export function toggleFavorite(id) {
   write("favorites", favorites);
 }
 export function saveDemoCatalog() {
-  write("products", catalog.products);
-  write("settings", catalog.settings);
-  write("coupons", catalog.coupons);
-  write("categories", catalog.categories);
-  write("collections", catalog.collections);
+  return D.writeMany({
+    products: catalog.products,
+    settings: catalog.settings,
+    coupons: catalog.coupons,
+    categories: catalog.categories,
+    collections: catalog.collections,
+    orders,
+  });
 }
 export async function login(data, register = false) {
   if (mode === "demo") {
@@ -226,13 +219,14 @@ export async function uploadPhoto(file) {
   return (await request("uploads", { base64 })).id;
 }
 export async function uploadProductPhoto(file) {
+  D.validatePhoto(file);
+  if (mode === "demo") return D.putImage(file);
   const data = await new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result);
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
-  if (mode === "demo") return data;
   return (await request("admin/images", { base64: data.split(",")[1] })).image;
 }
 export async function placeOrder(data) {
@@ -289,7 +283,7 @@ export async function placeOrder(data) {
     );
   if (amounts.coupon)
     catalog.coupons.find((c) => c.code === amounts.coupon).used++;
-  saveDemoCatalog();
+  await saveDemoCatalog();
   clearCart();
   return order;
 }
@@ -323,10 +317,11 @@ export async function saveProduct(product) {
     await refresh();
     return;
   }
-  const index = catalog.products.findIndex((p) => p.id === product.id);
-  if (index < 0) catalog.products.push(product);
-  else catalog.products[index] = product;
-  saveDemoCatalog();
+  const next = catalog.products.some((p) => p.id === product.id)
+    ? catalog.products.map((p) => (p.id === product.id ? product : p))
+    : [...catalog.products, product];
+  await write("products", next);
+  catalog.products = next;
 }
 export async function saveSettings(settings) {
   settings = validateContent(
@@ -334,7 +329,8 @@ export async function saveSettings(settings) {
     (image) =>
       typeof image === "string" &&
       (/^(assets|media)\//.test(image) ||
-        /^data:image\/(png|jpeg|webp);base64,/.test(image)),
+        /^data:image\/(png|jpeg|webp);base64,/.test(image) ||
+        D.ownsImage(image)),
   );
   if (mode === "server") {
     await request("admin/settings", settings);
@@ -342,7 +338,7 @@ export async function saveSettings(settings) {
     return;
   }
   catalog.settings = settings;
-  saveDemoCatalog();
+  await saveDemoCatalog();
 }
 export async function saveCoupon(coupon) {
   if (mode === "server") return request("admin/coupons", coupon);
@@ -350,27 +346,16 @@ export async function saveCoupon(coupon) {
   if (index < 0) catalog.coupons.push({ ...coupon, used: 0 });
   else
     catalog.coupons[index] = { ...coupon, used: catalog.coupons[index].used };
-  saveDemoCatalog();
+  await saveDemoCatalog();
 }
 export async function updateOrder(id, status) {
   if (mode === "server") return request("admin/orders", { id, status });
   orders.find((o) => o.id === id).status = status;
-  write("orders", orders);
+  await write("orders", orders);
 }
-export function resetDemo() {
+export async function resetDemo() {
   if (mode !== "demo") return;
-  for (const key of [
-    "products",
-    "settings",
-    "coupons",
-    "orders",
-    "cart",
-    "user",
-    "favorites",
-    "categories",
-    "collections",
-  ])
-    localStorage.removeItem("nm2-" + key);
+  await D.clear();
   location.reload();
 }
 
@@ -386,12 +371,19 @@ export async function saveTaxonomy(type, record) {
     name = taxonomyName(record.name, catalog[type], id);
   const updated =
     type === "categories"
-      ? categoryDetails(record, catalog[type], id, true)
+      ? categoryDetails(
+          record,
+          catalog[type],
+          id,
+          (image) =>
+            D.ownsImage(image) ||
+            /^data:image\/(png|jpeg|webp);base64,/.test(image),
+        )
       : { id, name };
   const next = catalog[type].some((item) => item.id === id)
     ? catalog[type].map((item) => (item.id === id ? updated : item))
     : [...catalog[type], updated];
-  write(type, next);
+  await write(type, next);
   catalog[type] = next;
 }
 export async function removeTaxonomy(type, id) {
@@ -404,6 +396,6 @@ export async function removeTaxonomy(type, id) {
   }
   assertRemovable(catalog.products, type, id);
   const next = catalog[type].filter((item) => item.id !== id);
-  write(type, next);
+  await write(type, next);
   catalog[type] = next;
 }
