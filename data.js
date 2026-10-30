@@ -1,3 +1,8 @@
+import {
+  normalizeOptions,
+  resolveOptions,
+  selectedVariant,
+} from "./product-options.js";
 import { normalizeContent, validateContent } from "./content-defaults.js";
 import {
   defaultCategories,
@@ -66,7 +71,10 @@ if (!Array.isArray(orders))
               name: p.name,
               kind: p.kind,
               image: p.image,
-              price: p.price,
+              price: resolveOptions(p, i).price,
+              variantKey: resolveOptions(p, i).key,
+              optionSelections: resolveOptions(p, i).selections,
+              optionAnswers: resolveOptions(p, i).answers,
               quantity: 1,
               color: p.colors[0],
               size: p.sizes[0],
@@ -170,7 +178,17 @@ export function quoteLocal(code = "") {
     if (!product) throw new Error("Sepette satışa kapatılmış bir ürün var.");
     if (item.quantity > product.stock)
       throw new Error(`${product.kind} için yeterli stok yok.`);
-    subtotal += product.price * item.quantity;
+    const options = resolveOptions(product, item);
+    const total = cart
+      .filter(
+        (i) =>
+          i.id === item.id &&
+          selectedVariant(product, i.selections).key === options.key,
+      )
+      .reduce((sum, i) => sum + i.quantity, 0);
+    if (total > options.stock)
+      throw new Error("Varyasyon için yeterli stok yok.");
+    subtotal += options.price * item.quantity;
   }
   const coupon = code
     ? catalog.coupons.find(
@@ -200,7 +218,7 @@ export async function quote(code) {
     : quoteLocal(code);
 }
 export async function uploadPhoto(file) {
-  if (mode === "demo") return null;
+  if (mode === "demo") return "demo-" + uid();
   const base64 = await new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result.split(",")[1]);
@@ -249,7 +267,10 @@ export async function placeOrder(data) {
         name: p.name,
         kind: p.kind,
         image: p.image,
-        price: p.price,
+        price: resolveOptions(p, i).price,
+        variantKey: resolveOptions(p, i).key,
+        optionSelections: resolveOptions(p, i).selections,
+        optionAnswers: resolveOptions(p, i).answers,
       };
     }),
     status: "demo-received",
@@ -260,6 +281,11 @@ export async function placeOrder(data) {
   write("orders", orders);
   for (const [id, count] of demand)
     catalog.products.find((p) => p.id === id).stock -= count;
+  for (const item of order.items) {
+    const product = catalog.products.find((p) => p.id === item.id),
+      variant = product.variants?.find((row) => row.key === item.variantKey);
+    if (variant) variant.stock -= item.quantity;
+  }
   if (amounts.coupon)
     catalog.coupons.find((c) => c.code === amounts.coupon).used++;
   saveDemoCatalog();
@@ -285,6 +311,7 @@ export async function adminData() {
   };
 }
 export async function saveProduct(product) {
+  Object.assign(product, normalizeOptions(product));
   product.collections = productAssignments(
     product,
     catalog.categories,

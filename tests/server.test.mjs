@@ -5,6 +5,11 @@ import { tmpdir } from "node:os";
 import { join, resolve, basename, sep } from "node:path";
 import { randomUUID } from "node:crypto";
 import { createStore } from "../server/store.mjs";
+import {
+  normalizeOptions,
+  resolveOptions,
+  variantKey,
+} from "../product-options.js";
 const seed = JSON.parse(
   readFileSync(new URL("../data/catalog.json", import.meta.url), "utf8"),
 );
@@ -48,6 +53,192 @@ const order = (key = randomUUID()) => ({
   coupon: "ILKILMEK10",
   customer,
   consent: true,
+});
+function customized(s) {
+  const p = s.products(true).find((p) => p.id === "lucky");
+  return s.saveProduct(
+    {
+      ...p,
+      variations: [
+        {
+          id: "placement",
+          name: "Nakış yeri",
+          options: ["Sağ kol", "Sol kol"],
+        },
+      ],
+      variants: [
+        { key: variantKey(["Sağ kol"]), price: 190000, stock: 2 },
+        { key: variantKey(["Sol kol"]), price: 210000, stock: 1 },
+      ],
+      customFields: [
+        {
+          id: "name",
+          name: "Sağ kola yazılacak isim",
+          type: "text",
+          required: true,
+          maxLength: 12,
+        },
+        {
+          id: "thread",
+          name: "İplik rengi",
+          type: "select",
+          required: true,
+          options: ["Siyah", "Beyaz"],
+        },
+        {
+          id: "photos",
+          name: "Referans fotoğrafları",
+          type: "file",
+          required: false,
+          maxFiles: 2,
+        },
+      ],
+    },
+    "admin",
+  );
+}
+const customizedItem = () => ({
+  ...item,
+  selections: { placement: "Sağ kol" },
+  answers: { name: "Milo", thread: "Siyah", photos: [] },
+});
+test("özel başlıklar ve alanlar kaydedilir; geçersiz tanım reddedilir", (t) => {
+  const s = fixture(t),
+    p = customized(s);
+  assert.equal(
+    s.products(true).find((p) => p.id === "lucky").variations[0].name,
+    "Nakış yeri",
+  );
+  assert.equal(p.customFields[0].name, "Sağ kola yazılacak isim");
+  assert.throws(
+    () =>
+      normalizeOptions({
+        ...p,
+        variations: [{ id: "a", name: "Konum", options: ["Kol", "kol"] }],
+      }),
+    /tekrarlanan/,
+  );
+  assert.throws(
+    () =>
+      normalizeOptions({
+        ...p,
+        customFields: Array(6).fill(p.customFields[0]),
+      }),
+    /5/,
+  );
+  assert.throws(
+    () => normalizeOptions({ ...p, variants: p.variants.slice(1) }),
+    /tablosunu/,
+  );
+});
+test("zorunlu alan, karakter sınırı ve izin verilmeyen seçimler sunucuda reddedilir", (t) => {
+  const s = fixture(t);
+  customized(s);
+  const quote = (i) => s.calculate({ items: [i] }, "owner");
+  assert.throws(
+    () => quote({ ...customizedItem(), selections: { placement: "Göğüs" } }),
+    /Nakış yeri/,
+  );
+  assert.throws(
+    () =>
+      quote({ ...customizedItem(), answers: { name: "", thread: "Siyah" } }),
+    /tamamla/,
+  );
+  assert.throws(
+    () =>
+      quote({
+        ...customizedItem(),
+        answers: { name: "Bu metin çok uzun", thread: "Siyah" },
+      }),
+    /metnini/,
+  );
+  assert.throws(
+    () =>
+      quote({
+        ...customizedItem(),
+        answers: { name: "Milo", thread: "Kırmızı" },
+      }),
+    /geçerli/,
+  );
+});
+test("birleşim fiyatı sunucudan gelir; toplam birleşim stoku ve sipariş anlık görüntüsü korunur", (t) => {
+  const s = fixture(t);
+  customized(s);
+  const data = {
+    ...order(),
+    coupon: "",
+    items: [{ ...customizedItem(), price: 1 }],
+  };
+  assert.equal(s.calculate(data, "owner").subtotal, 190000);
+  assert.throws(
+    () =>
+      s.calculate(
+        {
+          ...data,
+          items: [{ ...customizedItem(), quantity: 2 }, customizedItem()],
+        },
+        "owner",
+      ),
+    /stok/,
+  );
+  const saved = s.createOrder(data, "owner", null);
+  assert.equal(saved.items[0].optionSelections[0].value, "Sağ kol");
+  assert.equal(saved.items[0].optionAnswers[0].value, "Milo");
+  assert.equal(
+    s.products(true).find((p) => p.id === "lucky").variants[0].stock,
+    1,
+  );
+  s.createOrder(data, "owner", null);
+  assert.equal(
+    s.products(true).find((p) => p.id === "lucky").variants[0].stock,
+    1,
+  );
+  const product = s.products(true).find((p) => p.id === "lucky");
+  s.saveProduct({ ...product, customFields: [] }, "admin");
+  assert.equal(saved.items[0].optionAnswers[0].name, "Sağ kola yazılacak isim");
+});
+test("çoklu fotoğrafta dosya sınırı ve her dosyanın sahipliği doğrulanır", (t) => {
+  const s = fixture(t),
+    p = customized(s),
+    base = customizedItem();
+  assert.throws(
+    () =>
+      resolveOptions(
+        p,
+        {
+          ...base,
+          answers: { ...base.answers, photos: [{ id: "a", name: "a.jpg" }] },
+        },
+        () => false,
+      ),
+    /oturuma/,
+  );
+  assert.throws(
+    () =>
+      resolveOptions(p, {
+        ...base,
+        answers: {
+          ...base.answers,
+          photos: Array(3).fill({ id: "a", name: "a.jpg" }),
+        },
+      }),
+    /en fazla 2/,
+  );
+  const result = resolveOptions(
+    p,
+    {
+      ...base,
+      answers: {
+        ...base.answers,
+        photos: [
+          { id: "a", name: "a.jpg" },
+          { id: "b", name: "b.jpg" },
+        ],
+      },
+    },
+    () => true,
+  );
+  assert.equal(result.answers[2].value.length, 2);
 });
 test("hesap parolası özetlenir, rol istemciden yükseltilemez, çıkış oturumu iptal eder", (t) => {
   const s = fixture(t);

@@ -15,3 +15,7 @@
 ## Görsel kategori kartları
 
 Kategori ekranı iki sütunlu fotoğraflı kartlara dönüştürüldü. Kapak fotoğrafı, ad, bağlantı adı ve aktif/pasif durumu ayrı kategori düzenleme formunda kaydedilir. Pasif kategori mağaza kategori menülerinden gizlenir; ürünler silinmez. 13/13 otomatik test başarılı; kategori görünürlük kaydı tarayıcıda doğrulandı. Kaldığımız nokta PROGRESS.md dosyasına yazıldı.
+
+## 30 Ekim — ürün seçenekleri
+
+17 Node/SQLite testi geçti. Yeni kontroller: serbest başlıkların kaydı, tekrarlanan/geçersiz şema, zorunlu alan ve metin sınırı, geçersiz seçim, sunucunun belirlediği birleşim fiyatı, aynı birleşimde toplam stok, atomik stok düşümü, idempotency, sipariş anındaki alan adları/değerleri, çoklu fotoğraf sınırı ve sahiplik. Tarayıcıda ürün düzenleme → varyasyon ekleme → ayrı fiyat/stok → özel metin alanı → kaydet → müşteri seçimi → sepet → demo siparişi akışı doğrulandı. Örnek İki kol 2290 TL ve Milo değeri siparişe doğru taşındı.

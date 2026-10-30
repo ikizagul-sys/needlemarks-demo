@@ -1,4 +1,5 @@
-import { assignmentCount, categorySlug } from "./catalog-rules.js?v=a0706e261e17";
+import { optionsEditor } from "./options-ui.js?v=474fc0684f0c";
+import { assignmentCount, categorySlug } from "./catalog-rules.js?v=474fc0684f0c";
 
 const esc = (value) =>
   String(value ?? "").replace(
@@ -26,6 +27,7 @@ export function productEditor(product, categories, collections, demo) {
           <div id="photoUploadStatus" class="photo-upload-status" role="status"></div><div id="editorGallery" class="editor-gallery"></div>
           <div class="photo-card-footer"><span>İlk fotoğraf ürünün kapak görselidir.</span>${demo ? '<button type="button" class="subtle-link" data-action="sample-photo">Demo fotoğrafı kullan</button>' : ""}</div>
         </section>
+        ${optionsEditor(product)}
         <details class="editor-card extra-product-info"><summary><span>Ek bilgiler</span><small>Renk, beden ve bakım bilgileri</small><span class="details-chevron">⌄</span></summary><div class="extra-product-fields"><div class="form-grid"><label>Renkler<input name="colors" value="${esc(product.colors.join(", "))}" maxlength="300" placeholder="Örn. Krem, Siyah"><small>Birden fazla seçenek için virgül kullan.</small></label><label>Bedenler<input name="sizes" value="${esc(product.sizes.join(", "))}" maxlength="300" placeholder="Örn. S, M, L"></label></div><label>Malzeme<input name="material" value="${esc(product.material)}" maxlength="600"></label><label>Bakım önerisi<input name="care" value="${esc(product.care)}" maxlength="600"></label></div></details>
       </div>
       <aside class="product-form-side"><section class="editor-card"><h2>Ürün düzeni</h2><label>Kategori <span class="required-mark">*</span><select name="category" required><option value="">Kategori seç</option>${categories.map((category) => `<option value="${esc(category.id)}" ${category.id === product.category ? "selected" : ""}>${esc(category.name)}</option>`).join("")}</select></label>

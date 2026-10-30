@@ -1,3 +1,4 @@
+import { normalizeOptions, resolveOptions } from "../product-options.js";
 import { normalizeContent, validateContent } from "../content-defaults.js";
 import {
   defaultCategories,
@@ -275,12 +276,29 @@ export function createStore({ directory, seed, adminEmail, adminPassword }) {
         )
       )
         throw new AppError("Fotoğraf bu oturuma ait değil.");
+      let options;
+      try {
+        options = resolveOptions(p, item, (id) =>
+          Boolean(
+            row("SELECT id FROM uploads WHERE id=? AND owner=?", id, owner),
+          ),
+        );
+      } catch (error) {
+        throw new AppError(error.message);
+      }
+      const variantDemand = p.id + "|" + options.key;
+      demand.set(variantDemand, (demand.get(variantDemand) || 0) + quantity);
+      if (demand.get(variantDemand) > options.stock)
+        throw new AppError("Varyasyon için yeterli stok yok.");
       return {
+        variantKey: options.key,
+        optionSelections: options.selections,
+        optionAnswers: options.answers,
         id: p.id,
         name: p.name,
         kind: p.kind,
         image: p.image,
-        price: p.price,
+        price: options.price,
         quantity,
         color: item.color,
         size: item.size,
@@ -360,6 +378,10 @@ export function createStore({ directory, seed, adminEmail, adminPassword }) {
           row("SELECT body FROM products WHERE id=?", item.id).body,
         );
         p.stock -= item.quantity;
+        const variant = p.variants?.find(
+          (variant) => variant.key === item.variantKey,
+        );
+        if (variant) variant.stock -= item.quantity;
         run("UPDATE products SET body=? WHERE id=?", JSON.stringify(p), p.id);
       }
       if (amounts.coupon) {
@@ -459,6 +481,15 @@ export function createStore({ directory, seed, adminEmail, adminPassword }) {
         "Ürün adı, kategori, seçenek ve görsel alanlarını kontrol et.",
       );
     try {
+      Object.assign(
+        p,
+        normalizeOptions({
+          ...p,
+          variations: data.variations ?? existing?.variations,
+          variants: data.variants ?? existing?.variants,
+          customFields: data.customFields ?? existing?.customFields,
+        }),
+      );
       p.collections = productAssignments(
         p,
         taxonomy("categories"),

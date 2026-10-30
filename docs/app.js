@@ -1,17 +1,31 @@
-import { categorySlug } from "./catalog-rules.js?v=a0706e261e17";
+import {
+  renderOptions,
+  readOptions,
+  optionAction,
+  saveOption,
+  inventoryChange,
+  customerOptions,
+  selectionsHTML,
+} from "./options-ui.js?v=474fc0684f0c";
+import {
+  fieldsFor,
+  resolveOptions,
+  selectedVariant,
+} from "./product-options.js?v=474fc0684f0c";
+import { categorySlug } from "./catalog-rules.js?v=474fc0684f0c";
 import {
   siteFooter,
   bannerEditor,
   legalEditor,
   legalBody,
-} from "./store-content.js?v=a0706e261e17";
+} from "./store-content.js?v=474fc0684f0c";
 import {
   productEditor,
   taxonomyPage,
   taxonomyEditor,
   categoryCover,
-} from "./admin-catalog.js?v=a0706e261e17";
-import * as S from "./data.js?v=a0706e261e17";
+} from "./admin-catalog.js?v=474fc0684f0c";
+import * as S from "./data.js?v=474fc0684f0c";
 const $ = (s, r = document) => r.querySelector(s),
   $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const esc = (v) =>
@@ -144,10 +158,17 @@ function detailPage(id) {
     )
     .join(
       "",
-    )}<fieldset><legend>03 · Anını ekle</legend><label class="upload-box" for="detailPhoto">${icon("upload")}<span>Bir fotoğrafla başlasın<small>JPG, PNG, WebP · En fazla 5 MB · Demo için isteğe bağlı</small></span></label><input id="detailPhoto" name="photo" type="file" accept="image/png,image/jpeg,image/webp" class="upload-input"><div id="photoStatus" class="field-hint"></div><img id="photoPreview" class="photo-preview" alt="Seçilen fotoğraf" hidden><label class="form-label" for="detailNote">İsim, tarih veya küçük bir not</label><textarea name="note" id="detailNote" class="personal-note" maxlength="180" placeholder="Örneğin: Milo · 2024"></textarea></fieldset><div class="detail-purchase">${field("Adet", "quantity", 1, "number", `min="1" max="${Math.min(p.stock, 20) || 1}" required`)}<button class="button button-dark" ${p.stock ? "" : "disabled"}>${p.stock ? "Hikâyeme ekle" : "Tükendi"} ${icon("bag")}</button></div><div data-error></div><p class="field-hint">Örnek hazırlık: ${esc(S.catalog.settings.preparationDays)}. Demo siparişi üretime gönderilmez.</p></form><div class="product-accordions"><details open><summary>Ürün ve malzeme</summary><p>${esc(p.material)}</p></details><details><summary>Bakım önerileri</summary><p>${esc(p.care)}</p></details><details><summary>Teslimat ve kişiselleştirme</summary><p>Örnek kargo ücreti ${money(S.catalog.settings.shippingFee)}. İndirim sonrası ${money(S.catalog.settings.freeShippingThreshold)} ve üzeri sepette ücretsiz kargo hesaplanır.</p></details></div></div></div></section><section class="section-pad related-products"><div class="eyebrow">HİKÂYENE EŞLİK EDEBİLİR</div><h2>Bir de <em>bunlara bak.</em></h2><div class="product-grid">${S.catalog.products
+    )}${customerOptions(p)}<div class="detail-purchase">${field("Adet", "quantity", 1, "number", `min="1" max="${Math.min(p.stock, 20) || 1}" required`)}<button class="button button-dark" ${p.stock ? "" : "disabled"}>${p.stock ? "Hikâyeme ekle" : "Tükendi"} ${icon("bag")}</button></div><div data-error></div><p class="field-hint">Örnek hazırlık: ${esc(S.catalog.settings.preparationDays)}. Demo siparişi üretime gönderilmez.</p></form><div class="product-accordions"><details open><summary>Ürün ve malzeme</summary><p>${esc(p.material)}</p></details><details><summary>Bakım önerileri</summary><p>${esc(p.care)}</p></details><details><summary>Teslimat ve kişiselleştirme</summary><p>Örnek kargo ücreti ${money(S.catalog.settings.shippingFee)}. İndirim sonrası ${money(S.catalog.settings.freeShippingThreshold)} ve üzeri sepette ücretsiz kargo hesaplanır.</p></details></div></div></div></section><section class="section-pad related-products"><div class="eyebrow">HİKÂYENE EŞLİK EDEBİLİR</div><h2>Bir de <em>bunlara bak.</em></h2><div class="product-grid">${S.catalog.products
     .filter((x) => x.published && x.id !== p.id)
     .map(card)
     .join("")}</div></section>`;
+}
+function itemPrice(p, item) {
+  try {
+    return selectedVariant(p, item.selections).price;
+  } catch {
+    return p.price;
+  }
 }
 function cartRows() {
   return S.cart
@@ -155,7 +176,7 @@ function cartRows() {
       const p = S.catalog.products.find((p) => p.id === i.id);
       if (!p)
         return `<div class="cart-row">Ürün artık mevcut değil.<button data-remove="${esc(i.key)}">Kaldır</button></div>`;
-      return `<article class="cart-row"><a href="#/urun/${encodeURIComponent(p.id)}"><img src="${esc(p.image)}" alt="${esc(p.kind)}"></a><div><span class="product-category">${esc(p.kind)}</span><a href="#/urun/${encodeURIComponent(p.id)}"><h3>${esc(p.name)}</h3></a><p>${esc(i.color)} · ${esc(i.size)}</p>${i.note ? `<p>Not: ${esc(i.note)}</p>` : ""}${i.photoSelected ? "<p>Fotoğraf seçildi · Demo kişiselleştirme</p>" : ""}<button class="remove-item" data-remove="${esc(i.key)}">Kaldır</button></div><div class="cart-row-total"><strong>${money(p.price * i.quantity)}</strong><div class="quantity"><button data-quantity="${esc(i.key)}" data-change="-1" aria-label="${esc(p.kind)} adedini azalt">−</button><span>${i.quantity}</span><button data-quantity="${esc(i.key)}" data-change="1" aria-label="${esc(p.kind)} adedini artır">+</button></div></div></article>`;
+      return `<article class="cart-row"><a href="#/urun/${encodeURIComponent(p.id)}"><img src="${esc(p.image)}" alt="${esc(p.kind)}"></a><div><span class="product-category">${esc(p.kind)}</span><a href="#/urun/${encodeURIComponent(p.id)}"><h3>${esc(p.name)}</h3></a><p>${esc(i.color)} · ${esc(i.size)}</p>${selectionsHTML(i)}${!i.optionAnswers && i.note ? `<p>Not: ${esc(i.note)}</p>` : ""}${i.photoSelected ? "<p>Fotoğraf seçildi · Demo kişiselleştirme</p>" : ""}<button class="remove-item" data-remove="${esc(i.key)}">Kaldır</button></div><div class="cart-row-total"><strong>${money(itemPrice(p, i) * i.quantity)}</strong><div class="quantity"><button data-quantity="${esc(i.key)}" data-change="-1" aria-label="${esc(p.kind)} adedini azalt">−</button><span>${i.quantity}</span><button data-quantity="${esc(i.key)}" data-change="1" aria-label="${esc(p.kind)} adedini artır">+</button></div></div></article>`;
     })
     .join("");
 }
@@ -187,7 +208,7 @@ async function checkoutPage() {
     `<section class="checkout-layout"><form data-form="checkout" class="surface-form"><div class="checkout-steps"><span>01 Sepet</span><span class="current">02 Teslimat</span><span>03 Demo onayı</span></div><h2>Hikâyen nereye gelsin?</h2><p class="field-hint">Bu bir demo. Gerçek kişisel bilgiler yerine örnek bilgiler kullanabilirsin.</p><div class="form-grid">${field("Ad soyad", "name", S.user?.name || "", "text", 'required minlength="3" maxlength="100" placeholder="Deniz Örnek"')}${field("E-posta", "email", S.user?.email || "", "email", 'required maxlength="160" placeholder="deniz@example.com"')}${field("Telefon", "phone", "", "tel", 'required minlength="10" maxlength="30" placeholder="0555 000 00 00"')}<label>İl<select name="city" required><option value="">İl seç</option>${cities.map((c) => `<option>${c}</option>`).join("")}</select></label>${field("İlçe", "district", "", "text", 'required minlength="2" maxlength="80" placeholder="Örnek ilçe"')}${field("Posta kodu (isteğe bağlı)", "postalCode", "", "text", 'pattern="[0-9]{5}" maxlength="5" placeholder="34000"')}<label class="full-width">Açık adres<textarea name="address" required minlength="10" maxlength="400" placeholder="Örnek mahalle, sokak, bina ve daire"></textarea></label></div><label class="checkbox-line"><input name="consent" type="checkbox" required> Bunun gerçek ödeme veya gönderim oluşturmayan bir demo siparişi olduğunu anladım.</label><div data-error></div><button class="button button-dark">Demo siparişini oluştur ${icon("arrow")}</button><p class="field-hint">Kart bilgisi istenmez. Vergi faturası veya kargo kaydı oluşturulmaz.</p></form><aside class="order-summary"><div class="eyebrow">SEÇTİĞİN PARÇALAR</div>${S.cart
       .map((i) => {
         const p = S.catalog.products.find((p) => p.id === i.id);
-        return `<div class="checkout-item"><img src="${esc(p.image)}" alt=""><div>${esc(p.kind)}<small>${esc(i.color)} · ${esc(i.size)} · ${i.quantity} adet</small></div><span>${money(p.price * i.quantity)}</span></div>`;
+        return `<div class="checkout-item"><img src="${esc(p.image)}" alt=""><div>${esc(p.kind)}<small>${esc(i.color)} · ${esc(i.size)} · ${i.quantity} adet</small>${selectionsHTML(i)}</div><span>${money(itemPrice(p, i) * i.quantity)}</span></div>`;
       })
       .join("")}${await totals()}</aside></section>`;
 }
@@ -207,7 +228,7 @@ async function orderPage(id) {
       )
       .join(
         "",
-      )}</div></div><div class="order-detail-grid"><div class="surface"><h3>Seçtiğin parçalar</h3>${o.items.map((i) => `<div class="checkout-item"><img src="${esc(i.image)}" alt=""><div>${esc(i.kind)}<small>${esc(i.color)} · ${esc(i.size)} · ${i.quantity} adet</small>${i.note ? `<small>${esc(i.note)}</small>` : ""}${i.uploadId && S.mode === "server" ? `<a class="subtle-link" href="./api/uploads/${encodeURIComponent(i.uploadId)}" target="_blank" rel="noopener">Fotoğrafı görüntüle</a>` : ""}</div><span>${money(i.price * i.quantity)}</span></div>`).join("")}<div class="total-line grand-total"><strong>Demo toplam</strong><strong>${money(o.total)}</strong></div></div><div class="surface"><h3>Teslimat bilgileri</h3><p>${esc(o.customer.name)}<br>${esc(o.customer.address)}<br>${esc(o.customer.district)} / ${esc(o.customer.city)}</p><p>${esc(o.customer.email)}<br>${esc(o.customer.phone)}</p><p class="field-hint">Tahsilat, gerçek üretim ve kargo başlatılmadı.</p></div></div><a href="#/urunler" class="text-link">Yeni hikâyeler keşfet ${icon("arrow")}</a></section>`;
+      )}</div></div><div class="order-detail-grid"><div class="surface"><h3>Seçtiğin parçalar</h3>${o.items.map((i) => `<div class="checkout-item"><img src="${esc(i.image)}" alt=""><div>${esc(i.kind)}<small>${esc(i.color)} · ${esc(i.size)} · ${i.quantity} adet</small>${selectionsHTML(i)}${!i.optionAnswers && i.note ? `<small>${esc(i.note)}</small>` : ""}${i.uploadId && S.mode === "server" ? `<a class="subtle-link" href="./api/uploads/${encodeURIComponent(i.uploadId)}" target="_blank" rel="noopener">Fotoğrafı görüntüle</a>` : ""}</div><span>${money(i.price * i.quantity)}</span></div>`).join("")}<div class="total-line grand-total"><strong>Demo toplam</strong><strong>${money(o.total)}</strong></div></div><div class="surface"><h3>Teslimat bilgileri</h3><p>${esc(o.customer.name)}<br>${esc(o.customer.address)}<br>${esc(o.customer.district)} / ${esc(o.customer.city)}</p><p>${esc(o.customer.email)}<br>${esc(o.customer.phone)}</p><p class="field-hint">Tahsilat, gerçek üretim ve kargo başlatılmadı.</p></div></div><a href="#/urunler" class="text-link">Yeni hikâyeler keşfet ${icon("arrow")}</a></section>`;
 }
 async function accountPage() {
   if (!S.user) return authPage();
@@ -425,6 +446,7 @@ function editProduct(id) {
       S.mode === "demo",
     );
   renderEditorGallery();
+  renderOptions();
   window.scrollTo({ top: 0, left: 0, behavior: "instant" });
 }
 function modal(content) {
@@ -519,6 +541,7 @@ async function render() {
 }
 
 document.addEventListener("click", async (event) => {
+  if (optionAction(event.target, modal, closeModal)) return;
   const t = event.target.closest("button,a");
   if (!t) return;
   try {
@@ -582,7 +605,19 @@ document.addEventListener("click", async (event) => {
       const total = S.cart
         .filter((i) => i.id === p.id)
         .reduce((s, i) => s + i.quantity, 0);
-      if (item.quantity > 20 || total > p.stock) {
+      const variant = selectedVariant(p, item.selections);
+      const variantTotal = S.cart
+        .filter(
+          (i) =>
+            i.id === p.id &&
+            selectedVariant(p, i.selections).key === variant.key,
+        )
+        .reduce((sum, i) => sum + i.quantity, 0);
+      if (
+        item.quantity > 20 ||
+        total > p.stock ||
+        variantTotal > variant.stock
+      ) {
         item.quantity--;
         throw new Error("Stok veya adet sınırına ulaştın.");
       }
@@ -707,6 +742,47 @@ document.addEventListener("input", (event) => {
 });
 document.addEventListener("change", async (event) => {
   try {
+    if (event.target.id === "variantInventory") inventoryChange();
+    if (event.target.matches("[data-customer-variation]")) {
+      const form = event.target.closest("form"),
+        p = S.catalog.products.find((p) => p.id === form.dataset.id);
+      const selections = Object.fromEntries(
+        (p.variations || []).map((group) => [
+          group.id,
+          form.elements["variation-" + group.id].value,
+        ]),
+      );
+      if ((p.variations || []).every((group) => selections[group.id])) {
+        const variant = selectedVariant(p, selections);
+        $(".detail-price").firstChild.textContent = money(variant.price) + " ";
+        $("#variantAvailability").textContent = variant.stock
+          ? `Seçtiğin birleşim: ${variant.stock} adet stokta`
+          : "Seçtiğin birleşim tükendi.";
+        form.elements.quantity.max = Math.min(20, variant.stock) || 1;
+      }
+    }
+    if (event.target.matches("[data-custom-photo]")) {
+      const form = event.target.closest("form"),
+        p = S.catalog.products.find((p) => p.id === form.dataset.id),
+        field = fieldsFor(p).find(
+          (f) => "custom-" + f.id === event.target.name,
+        );
+      const files = [...event.target.files],
+        status = event.target.parentElement.querySelector(
+          ".custom-photo-status",
+        );
+      if (
+        files.length > field.maxFiles ||
+        files.some(
+          (file) =>
+            file.size > 5 * 1024 * 1024 ||
+            !["image/png", "image/jpeg", "image/webp"].includes(file.type),
+        )
+      ) {
+        event.target.value = "";
+        status.textContent = `En fazla ${field.maxFiles} fotoğraf; JPG, PNG veya WebP ve dosya başına 5 MB.`;
+      } else status.textContent = files.map((file) => file.name).join(" · ");
+    }
     if (event.target.id === "productPhotos") {
       await addProductFiles([...event.target.files]);
       event.target.value = "";
@@ -812,10 +888,17 @@ document.addEventListener("submit", async (event) => {
         filters = { ...filters, ...data };
         grid(location.hash === "#/favoriler");
         break;
+      case "option-editor": {
+        saveOption(form);
+        closeModal();
+        renderOptions();
+        toast("Alan uygulandı. Ürünü kaydetmeyi unutma.");
+        break;
+      }
       case "add-product": {
         const p = S.catalog.products.find((p) => p.id === form.dataset.id),
           quantity = Number(data.quantity),
-          file = $("#detailPhoto").files[0];
+          file = $("#detailPhoto")?.files[0];
         if (
           !Number.isInteger(quantity) ||
           quantity < 1 ||
@@ -827,18 +910,56 @@ document.addEventListener("submit", async (event) => {
           .reduce((s, i) => s + i.quantity, 0);
         if (count + quantity > p.stock)
           throw new Error("Sepetindeki toplam adet stok miktarını aşıyor.");
-        const uploadId = file ? await S.uploadPhoto(file) : null,
-          key = S.uid();
-        if (file) S.photos.set(key, file);
+        const selections = Object.fromEntries(
+          (p.variations || []).map((group) => [
+            group.id,
+            data["variation-" + group.id],
+          ]),
+        );
+        const answers = {};
+        for (const field of fieldsFor(p)) {
+          if (field.type === "file") {
+            answers[field.id] = [];
+            const files = [...form.elements["custom-" + field.id].files];
+            if (files.length > field.maxFiles)
+              throw new Error(
+                `${field.name}: en fazla ${field.maxFiles} fotoğraf seç.`,
+              );
+            for (const file of files) {
+              if (
+                file.size > 5 * 1024 * 1024 ||
+                !["image/png", "image/jpeg", "image/webp"].includes(file.type)
+              )
+                throw new Error(
+                  "JPG, PNG veya WebP fotoğraf seç; her dosya en fazla 5 MB olabilir.",
+                );
+              answers[field.id].push({
+                id: await S.uploadPhoto(file),
+                name: file.name,
+              });
+            }
+          } else answers[field.id] = data["custom-" + field.id] || "";
+        }
+        const resolved = resolveOptions(p, { selections, answers });
+        const variantCount = S.cart
+          .filter(
+            (i) =>
+              i.id === p.id &&
+              selectedVariant(p, i.selections).key === resolved.key,
+          )
+          .reduce((sum, i) => sum + i.quantity, 0);
+        if (variantCount + quantity > resolved.stock)
+          throw new Error("Bu birleşim için yeterli stok yok.");
         S.cart.push({
-          key,
+          key: S.uid(),
           id: p.id,
           color: data.color,
           size: data.size,
           quantity,
-          note: data.note.trim().slice(0, 180),
-          uploadId,
-          photoSelected: Boolean(file),
+          selections,
+          answers,
+          optionSelections: resolved.selections,
+          optionAnswers: resolved.answers,
         });
         S.saveCart();
         header();
@@ -910,6 +1031,7 @@ document.addEventListener("submit", async (event) => {
         await S.saveProduct({
           ...old,
           ...data,
+          ...readOptions(),
           id: form.dataset.id || S.uid(),
           kind: old?.kind || data.name,
           type: old?.type || "Ürün",

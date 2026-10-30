@@ -24,7 +24,7 @@ Marka NEEDLEMARKS. Kişiye özel nakış ürünleri satacak. Bee Artlab ürün f
 - Banner başlığı/açıklaması/butonu/fotoğrafı ve görünürlüğü ana sayfaya bağlı. Kargo ayarları sepette kullanılır.
 - Footer: Keşfet, Yanındayız ve Bilmen gerekenler. Kategori ve bilgi bağlantıları kendi sayfalarını açar. Yasal/bilgi metinleri panelden düzenlenir; başlangıç metinleri demo taslağıdır.
 
-## Son istek: görsel kategori kartları
+## Önceki istek: görsel kategori kartları
 
 Kategoriler ekranı kullanıcının son gönderdiği referans gibi iki sütunlu fotoğraflı kartlara çevrildi. Mobilde tek sütun. Her kartta kapak, aktif/pasif bilgisi, ürün sayısı, kategori adı, bağlantı adı ve Düzenle var. Yeni ekle düğmesi üst sağdadır.
 
@@ -60,8 +60,22 @@ Değişikliklerden sonra `node scripts/build-demo.mjs` çalıştırın. Kaynak d
 
 ## Devam edilecek yer
 
-Son bırakılan bölüm Yönetim → Kategoriler. Kart düzeni ve kayıt işlemleri tamamlandı; kullanıcının sonraki düzenleme isteği bekleniyor. Gerçek ürün/kategori fotoğrafları, kesin içerikler ve ticari metinler henüz marka tarafından sağlanmadı. Gerçek ödeme, kargo, e-posta, faturalama ve üretim yayını bağlı değil. Bu işleri tamamlanmış gibi sunmayın ve kullanıcı istemeden satışa açmayın.
+Son bırakılan bölüm Yönetim → Ürünler → Ürünü düzenle → Ürün seçenekleri. Varyasyonlar ve kişiselleştirme alanları tamamlandı; sonraki düzenleme isteği bekleniyor. Gerçek ürün/kategori fotoğrafları, kesin içerikler ve ticari metinler henüz marka tarafından sağlanmadı. Gerçek ödeme, kargo, e-posta, faturalama ve üretim yayını bağlı değil. Bu işleri tamamlanmış gibi sunmayın ve kullanıcı istemeden satışa açmayın.
 
 ## Dağıtım önbelleği notu
 
 GitHub Pages eski JavaScript dosyalarını önbellekte tutabildiği için demo oluşturucusu statik dosyalardan bir sürüm özeti hesaplar. docs/index.html içindeki JS/CSS bağlantıları, docs/ altındaki modül importları ve katalog isteği bu sürümü ?v= ile taşır. Kaynak dosyalarını elle sürümlemeyin; her güncellemede `node scripts/build-demo.mjs` çalıştırmak yeterlidir. Yeni sürümü ilk kez kontrol ederken demo adresine de ?v=SURUM eklenebilir.
+
+## Son istek: Etsy benzeri ürün seçenekleri — tamamlandı
+
+- Varyasyonlar ile kişiselleştirme alanları ürün formunda ayrı bölümler. Her başlık ve seçenek kullanıcı tarafından eklenir, düzenlenir ve silinir.
+- En fazla 2 varyasyon grubu, grup başına 30 seçenek ve toplam 100 birleşim. Örnek: Nakış yeri → Sağ kol / Sol kol / İki kol.
+- İsteğe bağlı birleşim tablosunda ayrı fiyat ve stok. Kapalıysa ortak ürün fiyatı/stoku. Ana ürün stoku toplam sınır, birleşim stoku ek sınırdır. Stok sıfır seçimi siparişte reddedilir. Renk/beden eski Ek bilgiler alanında uyumluluk için korundu; bu iki alan birleşim tablosuna otomatik dahil edilmez.
+- En fazla 5 kişiselleştirme alanı: metin (1–1024 karakter), seçim listesi (30 seçenek), fotoğraf (1–5 dosya, her biri 5 MB PNG/JPEG/WebP). Serbest başlık, açıklama, zorunlu/isteğe bağlı ayarı.
+- Müşteri seçimleri ürün sayfasından sepete, teslimat özetine ve siparişe taşınır. Sipariş anındaki alan adları/değerleri/fiyatı saklanır; ürün sonradan düzenlenince geçmiş sipariş değişmez.
+- Ortak product-options.js doğrulaması demo ve SQLite sürümünde kullanılır. Gerçek sunucu fiyat, toplam stok, birleşim stoku ve tüm fotoğrafların oturum sahipliğini denetler. Sipariş, stok düşümü ve kupon transaction içinde; tekrar gönderme stok düşürmez.
+- GitHub demosunda fotoğraf içeriği yüklenmez veya kalıcı saklanmaz; yalnızca seçilen dosyanın adı ve demo kimliği siparişte gösterilir. Gerçek sunucuda özel fotoğraflar korumalı saklanır.
+- Yeni ziyaretçiler için Çift nakışı ürününe örnek Nakış yeri, Sağ kol/Sol kol isimleri, iplik rengi ve 3 fotoğraf alanı eklendi. Önceden localStorage ile kaydedilmiş kataloglar otomatik değiştirilmez.
+- Yeni dosyalar: product-options.js (şema ve sipariş doğrulama), options-ui.js (yönetim alanları, birleşim tablosu, müşteri alanları). Statik sunucu izin listesine ve demo oluşturucusuna eklendi.
+- Doğrulama: 17 Node/SQLite testi başarılı. Tarayıcıda varyasyon oluşturuldu, İki kol fiyatı 2290 TL/stoku 3 yapıldı, Sağ kola yazılacak isim alanı eklendi, ürün kaydedildi, müşteri İki kol/Milo seçimiyle demo siparişi oluşturdu; fiyat ve tüm bilgiler siparişte görüldü.
+- Etsy yalnızca davranış referansı: https://help.etsy.com/hc/en-us/articles/360000344528-How-to-Offer-Personalized-Listings ve https://help.etsy.com/hc/en-us/articles/115015664047-How-to-Add-Variations-to-Your-Listings . Etsy hesabına/API'sine bağlı değildir.
