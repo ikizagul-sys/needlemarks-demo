@@ -7,10 +7,12 @@ import { randomUUID } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { createStore } from "../server/store.mjs";
 import { validatePhoto, moveToCover } from "../demo-storage.js";
+import { colorHex, reorderOptions, variantPhotos } from "../variation-media.js";
 import {
   normalizeOptions,
   resolveOptions,
   variantKey,
+  matchingVariants,
 } from "../product-options.js";
 const seed = JSON.parse(
   readFileSync(new URL("../data/catalog.json", import.meta.url), "utf8"),
@@ -55,6 +57,200 @@ const order = (key = randomUUID()) => ({
   coupon: "ILKILMEK10",
   customer,
   consent: true,
+});
+test("Türkçe/İngilizce renkler, manuel HEX ve erişilebilir sıralama", () => {
+  assert.equal(colorHex("Mavi"), colorHex("BLUE"));
+  assert.equal(colorHex("Beyaz"), "#ffffff");
+  assert.equal(colorHex("WHITE"), "#ffffff");
+  assert.equal(colorHex("Yeşil", "#123ABC"), "#123abc");
+  assert.deepEqual(reorderOptions(["Mavi", "Yeşil", "Kırmızı"], 0, 2), [
+    "Yeşil",
+    "Kırmızı",
+    "Mavi",
+  ]);
+});
+function mediaProduct(s) {
+  const p = s.products(true).find((p) => p.id === "lucky");
+  return s.saveProduct(
+    {
+      ...p,
+      managedVariations: true,
+      images: [
+        "assets/hero.webp",
+        "assets/sweatshirt.webp",
+        "assets/tote.webp",
+      ],
+      variations: [
+        {
+          id: "color",
+          name: "Renkler",
+          kind: "color",
+          options: ["Yeşil", "Mavi", "Kırmızı"],
+          swatches: { Mavi: "#0033ff" },
+          linkPhotos: true,
+          photos: {
+            Mavi: ["assets/hero.webp", "assets/tote.webp"],
+            Yeşil: ["assets/sweatshirt.webp"],
+          },
+        },
+      ],
+      variants: [],
+      customFields: p.customFields,
+      variationRules: {
+        price: {
+          enabled: true,
+          scope: "color",
+          values: ["Yeşil", "Mavi", "Kırmızı"].map((value) => ({
+            key: variantKey([value]),
+            value: value === "Mavi" ? 199000 : 189000,
+          })),
+        },
+        processing: {
+          enabled: true,
+          scope: "color",
+          values: ["Yeşil", "Mavi", "Kırmızı"].map((value) => ({
+            key: variantKey([value]),
+            value: value === "Mavi" ? "3–5 iş günü" : "1–2 iş günü",
+          })),
+        },
+      },
+      variantOverrides: {
+        [variantKey(["Kırmızı"])]: { visible: false, photos: [] },
+      },
+    },
+    "admin",
+  );
+}
+test("renk sırası, çoklu fotoğraf bağı ve hazırlık profili SQLite kaydında korunur", (t) => {
+  const s = fixture(t);
+  mediaProduct(s);
+  const p = s.products(true).find((p) => p.id === "lucky");
+  assert.deepEqual(p.variations[0].options, ["Yeşil", "Mavi", "Kırmızı"]);
+  assert.equal(p.variations[0].swatches.Mavi, "#0033ff");
+  assert.deepEqual(variantPhotos(p, { color: "Mavi" }), [
+    "assets/hero.webp",
+    "assets/tote.webp",
+  ]);
+  assert.deepEqual(variantPhotos(p, { color: "Yeşil" }), [
+    "assets/sweatshirt.webp",
+  ]);
+  const saved = s.createOrder(
+    {
+      ...order(),
+      coupon: "",
+      items: [{ ...item, selections: { color: "Mavi" } }],
+    },
+    "owner",
+    null,
+  );
+  assert.equal(saved.items[0].price, 199000);
+  assert.equal(saved.items[0].processingProfile, "3–5 iş günü");
+  assert.equal(saved.items[0].optionSelections[0].value, "Mavi");
+  const green = s.createOrder(
+    {
+      ...order(),
+      coupon: "",
+      items: [{ ...item, selections: { color: "Yeşil" } }],
+    },
+    "owner",
+    null,
+  );
+  assert.equal(green.items[0].image, "assets/sweatshirt.webp");
+});
+test("gizli birleşim sunucuda satın alınamaz, tükenmiş stok atlanamaz", (t) => {
+  const s = fixture(t),
+    p = mediaProduct(s);
+  assert.throws(
+    () =>
+      s.calculate(
+        { items: [{ ...item, selections: { color: "Kırmızı" } }] },
+        "owner",
+      ),
+    /görünür/,
+  );
+  assert.equal(matchingVariants(p, { color: "Kırmızı" }).length, 0);
+  const changed = s.saveProduct(
+    {
+      ...p,
+      variationRules: {
+        ...p.variationRules,
+        stock: {
+          enabled: true,
+          scope: "color",
+          values: p.variations[0].options.map((value) => ({
+            key: variantKey([value]),
+            value: value === "Mavi" ? 0 : 2,
+          })),
+        },
+      },
+    },
+    "admin",
+  );
+  assert.equal(matchingVariants(changed, { color: "Mavi" })[0].stock, 0);
+  assert.throws(
+    () =>
+      s.calculate(
+        { items: [{ ...item, selections: { color: "Mavi" } }] },
+        "owner",
+      ),
+    /stok/,
+  );
+});
+test("birleşim fotoğrafı önceliklidir; silinen/bağlanmayan fotoğraf varsayılan galeriye döner", (t) => {
+  const s = fixture(t),
+    p = mediaProduct(s),
+    key = variantKey(["Mavi"]);
+  const mapped = s.saveProduct(
+    {
+      ...p,
+      variantOverrides: {
+        ...p.variantOverrides,
+        [key]: { visible: true, photos: ["assets/sweatshirt.webp"] },
+      },
+    },
+    "admin",
+  );
+  assert.deepEqual(variantPhotos(mapped, { color: "Mavi" }), [
+    "assets/sweatshirt.webp",
+  ]);
+  const removed = s.saveProduct(
+    {
+      ...mapped,
+      images: ["assets/hero.webp"],
+      variations: mapped.variations.map((group) => ({
+        ...group,
+        linkPhotos: false,
+      })),
+    },
+    "admin",
+  );
+  assert.deepEqual(variantPhotos(removed, { color: "Mavi" }), [
+    "assets/hero.webp",
+  ]);
+  assert.throws(
+    () =>
+      normalizeOptions({
+        ...p,
+        variations: p.variations.map((group) => ({
+          ...group,
+          swatches: { Mavi: "invalid" },
+        })),
+      }),
+    /HEX/,
+  );
+  assert.throws(
+    () =>
+      normalizeOptions({
+        ...p,
+        variantOverrides: Object.fromEntries(
+          p.variations[0].options.map((value) => [
+            variantKey([value]),
+            { visible: false },
+          ]),
+        ),
+      }),
+    /görünür/,
+  );
 });
 test("fotoğraf sınırı her dosya için 5 MB: 1.5 MB ve 5 MB kabul, üstü reddedilir", () => {
   for (const size of [1.5 * 1024 * 1024, 4.9 * 1024 * 1024, 5 * 1024 * 1024])

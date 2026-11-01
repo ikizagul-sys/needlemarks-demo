@@ -1,11 +1,12 @@
-import * as D from "./demo-storage.js?v=9d17c35580d4";
+import { variantPhotos } from "./variation-media.js?v=add7483aa78d";
+import * as D from "./demo-storage.js?v=add7483aa78d";
 import {
   normalizeOptions,
   resolveOptions,
   selectedVariant,
   reduceVariantStock,
-} from "./product-options.js?v=9d17c35580d4";
-import { normalizeContent, validateContent } from "./content-defaults.js?v=9d17c35580d4";
+} from "./product-options.js?v=add7483aa78d";
+import { normalizeContent, validateContent } from "./content-defaults.js?v=add7483aa78d";
 import {
   defaultCategories,
   defaultCollections,
@@ -13,13 +14,13 @@ import {
   categoryDetails,
   productAssignments,
   assertRemovable,
-} from "./catalog-rules.js?v=9d17c35580d4";
+} from "./catalog-rules.js?v=add7483aa78d";
 export const mode = window.NEEDLEMARKS_CONFIG?.mode || "demo";
 if (mode === "demo") await D.initialize();
 export const read = D.read;
 export const write = D.write;
 export const uid = () => crypto.randomUUID();
-const seed = await fetch("./data/catalog.json?v=9d17c35580d4").then((r) => r.json());
+const seed = await fetch("./data/catalog.json?v=add7483aa78d").then((r) => r.json());
 export let catalog = {
   products: read("products", seed.products),
   settings: read("settings", seed.settings),
@@ -258,11 +259,12 @@ export async function placeOrder(data) {
         ...i,
         name: p.name,
         kind: p.kind,
-        image: p.image,
+        image: variantPhotos(p, i.selections)[0] || p.image,
         price: resolveOptions(p, i).price,
         variantKey: resolveOptions(p, i).key,
         stockKey: resolveOptions(p, i).stockKey,
         sku: resolveOptions(p, i).sku,
+        processingProfile: resolveOptions(p, i).processingProfile,
         managedVariations: p.managedVariations,
         optionSelections: resolveOptions(p, i).selections,
         optionAnswers: resolveOptions(p, i).answers,

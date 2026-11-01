@@ -1,3 +1,4 @@
+import { variantPhotos } from "../variation-media.js";
 import {
   normalizeOptions,
   resolveOptions,
@@ -301,13 +302,14 @@ export function createStore({ directory, seed, adminEmail, adminPassword }) {
         variantKey: options.key,
         stockKey: options.stockKey,
         sku: options.sku,
+        processingProfile: options.processingProfile,
         managedVariations: p.managedVariations,
         optionSelections: options.selections,
         optionAnswers: options.answers,
         id: p.id,
         name: p.name,
         kind: p.kind,
-        image: p.image,
+        image: variantPhotos(p, item.selections)[0] || p.image,
         price: options.price,
         quantity,
         color: item.color,
@@ -444,6 +446,8 @@ export function createStore({ directory, seed, adminEmail, adminPassword }) {
     const p = {
       ...existing,
       variationRules: data.variationRules ?? existing?.variationRules,
+      variantOverrides: data.variantOverrides ?? existing?.variantOverrides,
+      processingProfile: data.processingProfile ?? existing?.processingProfile,
       managedVariations: data.managedVariations ?? existing?.managedVariations,
       sku: data.sku ?? existing?.sku,
       id,

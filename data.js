@@ -1,3 +1,4 @@
+import { variantPhotos } from "./variation-media.js";
 import * as D from "./demo-storage.js";
 import {
   normalizeOptions,
@@ -258,11 +259,12 @@ export async function placeOrder(data) {
         ...i,
         name: p.name,
         kind: p.kind,
-        image: p.image,
+        image: variantPhotos(p, i.selections)[0] || p.image,
         price: resolveOptions(p, i).price,
         variantKey: resolveOptions(p, i).key,
         stockKey: resolveOptions(p, i).stockKey,
         sku: resolveOptions(p, i).sku,
+        processingProfile: resolveOptions(p, i).processingProfile,
         managedVariations: p.managedVariations,
         optionSelections: resolveOptions(p, i).selections,
         optionAnswers: resolveOptions(p, i).answers,

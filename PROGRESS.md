@@ -108,3 +108,11 @@ Temiz tarayıcıda ilk açılış ayrıca test edildi. Örnek sipariş verisi ge
 - Gerçek tarayıcı depolama regresyon sayfası (work/storage-qa): base64 eski ürün taşınması, başarı sonrası eski ağır JSON'un kaldırılması, dolu localStorage'a rağmen 1,5+4,9 MB görsel ve katalog kaydı, 5 MB üzerinin reddi, yenileme sonrası iki Blob'un doğru byte boyutu ve localStorage erişimi kapalıyken metadata kaydı geçti.
 - Uygulama arayüzünde 1,5 MB ve 4,9 MB dosyalar birlikte yüklendi, galeri 1'den 3 fotoğrafa çıktı. İkinci fotoğraf sürüklenerek vitrin yapıldı; ürün kaydedilip sayfa yenilendi, 3 görsel ve seçilen vitrin korundu.
 - Yeni modül demo oluşturucusuna ve yerel statik sunucu izin listesine eklendi. GitHub demosu halen yalnızca aynı tarayıcıya kayıt yapar; müşteriler arasında ortak veritabanı değildir.
+
+## 1 Kasım 2026 — varyasyon deneyimi
+
+- Kişiselleştirme alanları korundu. Seçenek satırları, tutamaçla sürükleme ve oklarla sıralama, TR/EN renk eşleme ve manuel HEX eklendi.
+- Grup başına çoklu ürün fotoğrafı bağlantısı; uygulama sonrası kombinasyon tablosunda fotoğraf, SKU, fiyat, stok, hazırlık profili ve görünürlük düzenlenir. Bağımsız kapsam ayarları mevcut modelde korundu.
+- Müşteride renk swatchları, filtrelenen galeri, önceki/sonraki oklar, klavye ve dokunmatik kaydırma; gizli/tükenmiş seçenek denetimi ve doğru fotoğraf/profille sepet/sipariş kaydı.
+- Yeni modüller: variation-editor.js (yalnızca varyasyon modalı ve fotoğraf seçici), variation-media.js (renk, sıralama ve galeri çözümleme). product-options.js ve mevcut API modeli geriye uyumlu genişletildi.
+- 27 test geçti. Tarayıcıda sıralama, HEX, iki/tek fotoğraf bağlantısı, Tamam→Yönet→Uygula→tablo→kayıt→yenile→renk/galeri→sepet akışı doğrulandı. Fiziksel telefonda swipe testi yapılmadı. Ortak sunucu kayıt konusu bu isteğin kapsamı dışında kaldı.

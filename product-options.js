@@ -1,3 +1,4 @@
+import { colorHex, validHex } from "./variation-media.js";
 // Shared by the storefront, demo and SQLite server.
 const fail = (message) => {
   throw new Error(message);
@@ -38,6 +39,17 @@ const legacyFields = [
 ];
 export const fieldsFor = (product) => product.customFields ?? legacyFields;
 export function normalizeOptions(product) {
+  const bank = product.images ?? (product.image ? [product.image] : null);
+  const photos = (list) => {
+    if (list === undefined) return [];
+    if (
+      !Array.isArray(list) ||
+      list.length > 8 ||
+      list.some((value) => typeof value !== "string")
+    )
+      fail("Varyasyon fotoğraflarını kontrol et.");
+    return [...new Set(list.filter((value) => !bank || bank.includes(value)))];
+  };
   const unique = (rows, key) => {
     if (
       new Set(rows.map((row) => row[key].toLocaleLowerCase("tr"))).size !==
@@ -64,6 +76,23 @@ export function normalizeOptions(product) {
     id: text(group.id, 80),
     name: text(group.name, 80),
     options: choices(group.options),
+    linkPhotos: group.linkPhotos === true,
+    swatches: Object.fromEntries(
+      (group.options || []).map((value) => {
+        if (
+          group.swatches?.[value] !== undefined &&
+          !validHex(group.swatches[value])
+        )
+          fail("Renk için #RRGGBB biçiminde bir HEX değeri gir.");
+        return [value, colorHex(value, group.swatches?.[value])];
+      }),
+    ),
+    photos: Object.fromEntries(
+      (group.options || []).map((value) => [
+        value,
+        photos(group.photos?.[value]),
+      ]),
+    ),
     kind: ["size", "color", "placement"].includes(group.kind)
       ? group.kind
       : "custom",
@@ -137,11 +166,34 @@ export function normalizeOptions(product) {
   unique(customFields, "id");
   unique(customFields, "name");
   const variationRules = normalizeRules(product.variationRules, variations);
+  const variantOverrides = {};
+  if (
+    product.variantOverrides !== undefined &&
+    (typeof product.variantOverrides !== "object" ||
+      product.variantOverrides === null ||
+      Array.isArray(product.variantOverrides))
+  )
+    fail("Varyasyon satırlarını kontrol et.");
+  for (const [key, row] of Object.entries(product.variantOverrides || {})) {
+    if (!keys.includes(key) || !row || typeof row !== "object")
+      fail("Geçersiz varyasyon satırı.");
+    variantOverrides[key] = {
+      visible: row.visible !== false,
+      photos: photos(row.photos),
+    };
+  }
+  if (
+    keys.length &&
+    keys.every((key) => variantOverrides[key]?.visible === false)
+  )
+    fail("En az bir varyasyon görünür olmalı.");
   return {
     variations,
     variants,
     customFields,
     variationRules,
+    variantOverrides,
+    processingProfile: text(product.processingProfile ?? "", 120),
     managedVariations: product.managedVariations === true,
     sku: text(product.sku ?? "", 80),
   };
@@ -156,6 +208,8 @@ export function selectedVariant(product, selected = {}) {
     return value;
   });
   const key = values.length ? variantKey(values) : "";
+  if (product.variantOverrides?.[key]?.visible === false)
+    fail("Bu varyasyon şu anda görünür değil. Başka bir seçenek seç.");
   const row = product.variants?.find((row) => row.key === key);
   if (product.variants?.length && !row)
     fail("Bu varyasyon artık satışta değil.");
@@ -171,13 +225,15 @@ export function selectedVariant(product, selected = {}) {
   };
   const price = attribute("price", row?.price ?? product.price),
     stock = attribute("stock", row?.stock ?? product.stock),
-    sku = attribute("sku", product.sku || "");
+    sku = attribute("sku", product.sku || ""),
+    processing = attribute("processing", product.processingProfile || "");
   return {
     key,
     price: price.value,
     stock: Math.min(product.stock, stock.value),
     stockKey: stock.key,
     sku: sku.value,
+    processingProfile: processing.value,
     selections: (product.variations || []).map((group, i) => ({
       name: group.name,
       value: values[i],
@@ -192,7 +248,7 @@ export function scopeCombinations(groups, scope) {
 export function normalizeRules(input, groups) {
   if (input === undefined) return undefined;
   const result = {};
-  for (const type of ["price", "stock", "sku"]) {
+  for (const type of ["price", "stock", "sku", "processing"]) {
     const rule = input?.[type];
     if (!rule?.enabled || !groups.length) {
       result[type] = { enabled: false, scope: "*", values: [] };
@@ -216,8 +272,8 @@ export function normalizeRules(input, groups) {
         return {
           key: entry.key,
           value:
-            type === "sku"
-              ? text(entry.value, 80)
+            type === "sku" || type === "processing"
+              ? text(entry.value, type === "processing" ? 120 : 80)
               : number(
                   entry.value,
                   type === "price" ? 1 : 0,
@@ -228,6 +284,30 @@ export function normalizeRules(input, groups) {
     };
   }
   return result;
+}
+export function matchingVariants(product, selected = {}) {
+  const groups = product.variations || [];
+  return combinations(groups)
+    .filter((values) =>
+      groups.every(
+        (group, index) =>
+          !selected[group.id] || selected[group.id] === values[index],
+      ),
+    )
+    .flatMap((values) => {
+      try {
+        return [
+          selectedVariant(
+            product,
+            Object.fromEntries(
+              groups.map((group, index) => [group.id, values[index]]),
+            ),
+          ),
+        ];
+      } catch {
+        return [];
+      }
+    });
 }
 export function reduceVariantStock(product, item) {
   const rule = product.variationRules?.stock;

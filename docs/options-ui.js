@@ -1,10 +1,20 @@
+import { colorHex, variantPhotos } from "./variation-media.js?v=add7483aa78d";
+import {
+  openGroupEditor,
+  readEditedGroup,
+  choosePhotos,
+  editorAction,
+  editorChange,
+  editorInput,
+  editorDrag,
+} from "./variation-editor.js?v=add7483aa78d";
 import {
   fieldsFor,
   combinations,
   variantKey,
   normalizeOptions,
   scopeCombinations,
-} from "./product-options.js?v=9d17c35580d4";
+} from "./product-options.js?v=add7483aa78d";
 const esc = (value) =>
   String(value ?? "").replace(
     /[&<>"']/g,
@@ -31,11 +41,19 @@ const infer = (value) =>
     göğüs: "center-chest",
     sırt: "back",
   })[value.toLocaleLowerCase("tr")] || "front";
-let draft, manager, base;
+let draft,
+  manager,
+  base,
+  productImages = [];
+export function syncVariationImages(images) {
+  productImages = [...images];
+  if (document.querySelector("#variationTable")) renderVariationTable();
+}
 const labels = {
   price: "Fiyatlar farklı",
   stock: "Stoklar farklı",
   sku: "Ürün kodları farklı",
+  processing: "Hazırlık profilleri farklı",
 };
 const blankRules = () =>
   Object.fromEntries(
@@ -104,13 +122,19 @@ function migrate(product) {
     managedVariations:
       product.managedVariations === true || !product.variants?.length,
     sku: product.sku || "",
+    processingProfile: product.processingProfile || "",
+    variantOverrides: structuredClone(product.variantOverrides || {}),
   };
 }
 export function optionsEditor(product) {
   draft = migrate(product);
   manager = null;
-  base = { price: product.price || 100, stock: product.stock || 0 };
-  return `<section class="editor-card item-options"><div class="editor-card-heading"><div><h2>Ürün seçenekleri</h2><p>Her ürün için sadece ihtiyacın olan seçimleri ekle.</p></div></div><div class="option-section"><div class="editor-card-heading"><div><h3>Varyasyonlar</h3><p>Beden, renk veya nakış konumu.</p></div><button type="button" class="button button-outline" data-manage-variations>Varyasyonları yönet</button></div><div id="variationRows"></div><p class="field-hint">Varyasyon eklemezsen müşteri bu üründe seçim yapmaz.</p></div><div class="option-section"><div class="editor-card-heading"><div><h3>Kişiselleştirme alanları</h3><p>İsim, fotoğraf veya özel not al.</p></div><button type="button" class="button button-outline" data-option-add="field">＋ Alan ekle</button></div><div id="customFieldRows"></div><small>En fazla 5 alan. Bu alanlar stok miktarını değiştirmez.</small></div></section>`;
+  base = {
+    price: product.price || 100,
+    stock: product.stock || 0,
+    processing: product.processingProfile || "Standart hazırlık",
+  };
+  return `<section class="editor-card item-options"><div class="editor-card-heading"><div><h2>Ürün seçenekleri</h2><p>Her ürün için sadece ihtiyacın olan seçimleri ekle.</p></div></div><div class="option-section"><div class="editor-card-heading"><div><h3>Varyasyonlar</h3><p>Beden, renk veya nakış konumu.</p></div><button type="button" class="button button-outline" data-add-variation-direct ${draft.variations.length >= 3 ? "disabled" : ""}>＋ Varyasyon ekle</button><button type="button" class="button button-outline" data-manage-variations>Varyasyonları yönet</button></div><div id="variationRows"></div><div id="variationTable"></div><p class="field-hint">Varyasyon eklemezsen müşteri bu üründe seçim yapmaz.</p></div><div class="option-section"><div class="editor-card-heading"><div><h3>Kişiselleştirme alanları</h3><p>İsim, fotoğraf veya özel not al.</p></div><button type="button" class="button button-outline" data-option-add="field">＋ Alan ekle</button></div><div id="customFieldRows"></div><small>En fazla 5 alan. Bu alanlar stok miktarını değiştirmez.</small></div></section>`;
 }
 export function renderOptions() {
   const container = document.querySelector("#variationRows");
@@ -119,9 +143,10 @@ export function renderOptions() {
     draft.variations
       .map(
         (group) =>
-          `<div class="variation-summary"><strong>${esc(group.name)}</strong><span>${group.options.map((value) => `<span class="variation-chip">${esc(value)}</span>`).join("")}</span></div>`,
+          `<div class="variation-summary"><strong>${esc(group.name)}</strong><span>${group.options.map((value) => `<span class="variation-chip">${group.photos?.[value]?.[0] ? `<img class="variation-chip-image" src="${esc(group.photos[value][0])}" alt="">` : group.kind === "color" ? `<i class="mini-swatch" style="background:${colorHex(value, group.swatches?.[value])}"></i>` : ""}${esc(value)}</span>`).join("")}</span></div>`,
       )
       .join("") || '<p class="options-empty">Bu üründe varyasyon yok.</p>';
+  renderVariationTable();
   document.querySelector("#customFieldRows").innerHTML =
     draft.customFields
       .map(
@@ -168,22 +193,21 @@ function captureRules() {
       (entry) => entry.key === input.dataset.ruleKey,
     );
     if (entry)
-      entry.value =
-        input.dataset.ruleValue === "sku"
-          ? input.value
-          : input.dataset.ruleValue === "price"
-            ? Math.round(Number(input.value) * 100)
-            : Number(input.value);
+      entry.value = ["sku", "processing"].includes(input.dataset.ruleValue)
+        ? input.value
+        : input.dataset.ruleValue === "price"
+          ? Math.round(Number(input.value) * 100)
+          : Number(input.value);
   }
 }
 function managerMarkup() {
   resetRules();
-  return `<div class="variation-manager"><div class="eyebrow">ÜRÜNE ÖZEL SEÇİMLER</div><h2>Varyasyonları yönet</h2><p class="manager-intro">Grupları ve seçeneklerini belirle. Bu ayarlar yalnızca bu ürün için geçerli.</p><form data-form="variation-manager"><div class="variation-group-list">${manager.variations.map((group, i) => `<article class="variation-group-card"><div><h3>${esc(group.name)}</h3><p>${group.options.length} seçenek${group.kind === "placement" ? " · Müşteriye görselli kartlar" : ""}</p><div class="variation-chips">${group.options.map((value) => `<span class="variation-chip">${esc(value)}</span>`).join("")}</div></div><div class="variation-card-actions"><button type="button" data-option-edit="variation" data-index="${i}" aria-label="${esc(group.name)} düzenle">✎</button><button type="button" data-option-remove="variation" data-index="${i}" aria-label="${esc(group.name)} sil">×</button></div></article>`).join("") || '<div class="variation-empty"><h3>Bu üründe varyasyon yok.</h3><p>İstersen beden, renk veya nakış konumu ekle. İstemiyorsan boş bırak.</p></div>'}</div><button type="button" class="button button-outline add-variation-button" data-option-add="variation" ${manager.variations.length >= 3 ? "disabled" : ""}>＋ Varyasyon ekle</button><div class="variation-rules">${Object.entries(
+  return `<div class="variation-manager"><div class="eyebrow">ÜRÜNE ÖZEL SEÇİMLER</div><h2>Varyasyonları yönet</h2><p class="manager-intro">Grupları ve seçeneklerini belirle. Bu ayarlar yalnızca bu ürün için geçerli.</p><form data-form="variation-manager"><div class="variation-group-list">${manager.variations.map((group, i) => `<article class="variation-group-card"><div><h3>${esc(group.name)}</h3><p>${group.options.length} seçenek${group.kind === "placement" ? " · Müşteriye görselli kartlar" : ""}</p><div class="variation-chips">${group.options.map((value) => `<span class="variation-chip">${group.photos?.[value]?.[0] ? `<img class="variation-chip-image" src="${esc(group.photos[value][0])}" alt="">` : group.kind === "color" ? `<i class="mini-swatch" style="background:${colorHex(value, group.swatches?.[value])}"></i>` : ""}${esc(value)}</span>`).join("")}</div></div><div class="variation-card-actions"><button type="button" data-option-edit="variation" data-index="${i}" aria-label="${esc(group.name)} düzenle">✎</button><button type="button" data-option-remove="variation" data-index="${i}" aria-label="${esc(group.name)} sil">×</button></div></article>`).join("") || '<div class="variation-empty"><h3>Bu üründe varyasyon yok.</h3><p>İstersen beden, renk veya nakış konumu ekle. İstemiyorsan boş bırak.</p></div>'}</div><button type="button" class="button button-outline add-variation-button" data-option-add="variation" ${manager.variations.length >= 3 ? "disabled" : ""}>＋ Varyasyon ekle</button><div class="variation-rules">${Object.entries(
     labels,
   )
     .map(([type, title]) => {
       const rule = manager.variationRules[type];
-      return `<div class="variation-rule"><div class="variation-rule-heading"><label class="switch-label"><input type="checkbox" role="switch" data-rule-toggle="${type}" ${rule.enabled ? "checked" : ""} ${!manager.variations.length ? "disabled" : ""}><span class="switch-track" aria-hidden="true"></span><strong>${title}</strong></label>${rule.enabled ? `<label class="rule-scope-label"><span class="visually-hidden">${title}: hangi gruba göre?</span><select data-rule-scope="${type}"><option value="*">Tüm grupların birleşimi</option>${manager.variations.map((group) => `<option value="${esc(group.id)}" ${rule.scope === group.id ? "selected" : ""}>Yalnızca ${esc(group.name)}</option>`).join("")}</select></label>` : `<small>${type === "price" ? "Ürünün ortak fiyatı kullanılır." : type === "stock" ? "Ürünün ortak stoku kullanılır." : "Ortak ürün kodu kullanılır."}</small>`}</div>${rule.enabled ? `<div class="table-scroll rule-table-wrap"><table class="rule-table"><thead><tr><th>${rule.scope === "*" ? "Birleşim" : esc(manager.variations.find((g) => g.id === rule.scope)?.name)}</th><th>${type === "price" ? "Fiyat (₺)" : type === "stock" ? "Stok adedi" : "Ürün kodu (SKU)"}</th></tr></thead><tbody>${rule.values.map((entry) => `<tr><td>${JSON.parse(entry.key).map(esc).join(" / ")}</td><td><input data-rule-value="${type}" data-rule-key="${esc(entry.key)}" aria-label="${esc(JSON.parse(entry.key).join(" / "))} ${type === "price" ? "fiyat" : type === "stock" ? "stok" : "ürün kodu"}" ${type === "sku" ? `maxlength="80" placeholder="Örn. NM-TS-M-SY"` : `type="number" required min="${type === "price" ? "0.01" : "0"}" max="${type === "price" ? "1000000" : "100000"}" step="${type === "price" ? "0.01" : "1"}"`} value="${esc(type === "price" ? entry.value / 100 : entry.value)}"></td></tr>`).join("")}</tbody></table></div>` : ""}</div>`;
+      return `<div class="variation-rule"><div class="variation-rule-heading"><label class="switch-label"><input type="checkbox" role="switch" data-rule-toggle="${type}" ${rule.enabled ? "checked" : ""} ${!manager.variations.length ? "disabled" : ""}><span class="switch-track" aria-hidden="true"></span><strong>${title}</strong></label>${rule.enabled ? `<label class="rule-scope-label"><span class="visually-hidden">${title}: hangi gruba göre?</span><select data-rule-scope="${type}"><option value="*">Tüm grupların birleşimi</option>${manager.variations.map((group) => `<option value="${esc(group.id)}" ${rule.scope === group.id ? "selected" : ""}>Yalnızca ${esc(group.name)}</option>`).join("")}</select></label>` : `<small>${type === "price" ? "Ürünün ortak fiyatı kullanılır." : type === "stock" ? "Ürünün ortak stoku kullanılır." : type === "processing" ? "Ortak hazırlık profili kullanılır." : "Ortak ürün kodu kullanılır."}</small>`}</div>${rule.enabled ? `<div class="table-scroll rule-table-wrap"><table class="rule-table"><thead><tr><th>${rule.scope === "*" ? "Birleşim" : esc(manager.variations.find((g) => g.id === rule.scope)?.name)}</th><th>${type === "price" ? "Fiyat (₺)" : type === "stock" ? "Stok adedi" : type === "processing" ? "Hazırlık profili" : "Ürün kodu (SKU)"}</th></tr></thead><tbody>${rule.values.map((entry) => `<tr><td>${JSON.parse(entry.key).map(esc).join(" / ")}</td><td><input data-rule-value="${type}" data-rule-key="${esc(entry.key)}" aria-label="${esc(JSON.parse(entry.key).join(" / "))} ${type === "price" ? "fiyat" : type === "stock" ? "stok" : type === "processing" ? "hazırlık profili" : "ürün kodu"}" ${["sku", "processing"].includes(type) ? `maxlength="${type === "processing" ? 120 : 80}" placeholder="${type === "processing" ? "Örn. 3–5 iş günü" : "Örn. NM-TS-M-SY"}"` : `type="number" required min="${type === "price" ? "0.01" : "0"}" max="${type === "price" ? "1000000" : "100000"}" step="${type === "price" ? "0.01" : "1"}"`} value="${esc(type === "price" ? entry.value / 100 : entry.value)}"></td></tr>`).join("")}</tbody></table></div>` : ""}</div>`;
     })
     .join(
       "",
@@ -196,6 +220,7 @@ export function showVariationManager(modal, start = false) {
     base = {
       price: Math.round(Number(form.elements.price.value) * 100) || 100,
       stock: Number(form.elements.stock.value) || 0,
+      processing: form.elements.processingProfile?.value || "Standart hazırlık",
     };
   }
   modal(managerMarkup());
@@ -204,6 +229,7 @@ export function saveManager() {
   captureRules();
   draft = normalizeOptions({
     ...manager,
+    images: productImages,
     managedVariations:
       manager.managedVariations || manager.variations.length === 0,
     sku: document.querySelector('[name="sku"]')?.value || "",
@@ -213,69 +239,108 @@ export function saveManager() {
 export function readOptions() {
   return normalizeOptions({
     ...draft,
+    images: productImages,
+    processingProfile:
+      document.querySelector(
+        '[data-form="product-admin"] [name="processingProfile"]',
+      )?.value || "",
     sku:
       document.querySelector('[data-form="product-admin"] [name="sku"]')
         ?.value || "",
   });
 }
 function groupEditor(record, index, modal) {
-  const group = record || {
-    id: uid(),
-    name: "",
-    kind: "custom",
-    options: [],
-    markers: {},
-  };
-  modal(
-    `<div class="option-modal group-editor"><div class="eyebrow">VARYASYON GRUBU</div><h2>${record ? "Grubu düzenle" : "Yeni varyasyon"}</h2><form data-form="option-editor" data-kind="variation" data-index="${index}" data-option-id="${esc(group.id)}"><label>Grup türü<select name="kind" data-group-kind>${[
-      ["custom", "Kendim oluşturacağım"],
-      ["size", "Beden"],
-      ["color", "Renk"],
-      ["placement", "Nakış konumu (görselli)"],
-    ]
-      .map(
-        ([value, label]) =>
-          `<option value="${value}" ${value === group.kind ? "selected" : ""}>${label}</option>`,
-      )
-      .join(
-        "",
-      )}</select></label><label>Varyasyon adı<input name="name" value="${esc(group.name)}" required maxlength="80" placeholder="Örn. Nakış yapılacak yer"></label><label>Seçenekler<textarea name="options" data-group-options rows="5" required placeholder="Her satıra bir seçenek">${group.options.map(esc).join("\n")}</textarea><small>Her satıra bir seçenek yaz. Başlıkları istediğin gibi değiştirebilirsin.</small></label><div id="placementMarkerEditor"></div><div data-error></div><div class="taxonomy-modal-actions"><button type="button" class="button button-outline" data-manager-back>Geri</button><button class="button button-dark">Grubu uygula</button></div></form></div>`,
-  );
-  renderMarkerEditor(group.markers);
+  openGroupEditor(record, index, modal, productImages);
 }
-function renderMarkerEditor(previous = {}) {
-  const form = document.querySelector(".group-editor form");
-  if (!form) return;
-  const container = document.querySelector("#placementMarkerEditor");
-  if (form.elements.kind.value !== "placement") {
-    container.innerHTML = "";
+export function variationInput(target) {
+  if (editorInput(target)) return true;
+  const type = target.dataset.variationRule,
+    key = target.dataset.ruleKey;
+  if (type) {
+    const value =
+      type === "price"
+        ? Math.round(Number(target.value) * 100)
+        : type === "stock"
+          ? Number(target.value)
+          : target.value;
+    const entry = draft.variationRules[type].values.find(
+      (row) => row.key === key,
+    );
+    if (entry) entry.value = value;
+    for (const other of document.querySelectorAll("[data-variation-rule]"))
+      if (
+        other !== target &&
+        other.dataset.variationRule === type &&
+        other.dataset.ruleKey === key
+      )
+        other.value = target.value;
+    return true;
+  }
+  if (target.hasAttribute("data-combo-visible")) {
+    const key = target.dataset.comboVisible;
+    draft.variantOverrides[key] = {
+      ...draft.variantOverrides[key],
+      visible: target.checked,
+    };
+    target
+      .closest("tr")
+      ?.classList.toggle("variant-hidden-row", !target.checked);
+    return true;
+  }
+  if (
+    target.closest('[data-form="product-admin"]') &&
+    ["price", "stock", "sku", "processingProfile"].includes(target.name)
+  )
+    renderVariationTable();
+  return false;
+}
+export function variationDrag(event, modal) {
+  editorDrag(event, modal);
+}
+function renderVariationTable() {
+  const slot = document.querySelector("#variationTable");
+  if (!slot) return;
+  if (!draft.variations.length) {
+    slot.innerHTML = "";
     return;
   }
-  const old = Object.fromEntries(
-    [...container.querySelectorAll("[data-position-marker]")].map((select) => [
-      select.dataset.positionMarker,
-      select.value,
-    ]),
-  );
-  const options = form.elements.options.value
-    .split("\n")
-    .map((value) => value.trim())
-    .filter(Boolean);
-  container.innerHTML = `<h3>Görsellerde gösterilecek konum</h3><p class="field-hint">Her seçeneğin tişört çiziminde nereye işaret edeceğini seç.</p>${options
-    .map(
-      (value) =>
-        `<label class="marker-edit-row"><span>${esc(value)}</span><select data-position-marker="${esc(value)}">${Object.entries(
-          markers,
-        )
-          .map(
-            ([key, title]) =>
-              `<option value="${key}" ${key === (old[value] || previous[value] || infer(value)) ? "selected" : ""}>${title}</option>`,
-          )
-          .join("")}</select></label>`,
-    )
-    .join("")}`;
+  const form = slot.closest("form");
+  const common = {
+    price: Math.round(Number(form.elements.price.value) * 100),
+    stock: Number(form.elements.stock.value),
+    sku: form.elements.sku?.value || "",
+    processing: form.elements.processingProfile?.value || "Standart hazırlık",
+  };
+  const groups = draft.variations;
+  slot.innerHTML = `<div class="variation-table-heading"><h4>Varyasyon tablosu</h4><small>Aynı gruba bağlı alanlar birlikte güncellenir.</small></div><div class="table-scroll applied-variations"><table><thead><tr><th>Fotoğraf</th><th>Varyasyon / Seçenek</th><th>SKU</th><th>Fiyat (₺)</th><th>Stok</th><th>Hazırlık profili</th><th>Görünür</th></tr></thead><tbody>${combinations(
+    groups,
+  )
+    .map((values) => {
+      const key = variantKey(values),
+        selected = Object.fromEntries(groups.map((g, i) => [g.id, values[i]]));
+      const photos = variantPhotos(
+        { ...draft, images: productImages, image: productImages[0] },
+        selected,
+      );
+      const controls = ["sku", "price", "stock", "processing"]
+        .map((type) => {
+          const rule = draft.variationRules?.[type],
+            ruleKey = variantKey(
+              rule?.scope === "*" ? values : [selected[rule?.scope]],
+            ),
+            entry = rule?.enabled
+              ? rule.values.find((row) => row.key === ruleKey)
+              : null,
+            value = entry?.value ?? common[type];
+          return `<td><input ${rule?.enabled ? `data-variation-rule="${type}" data-rule-key="${esc(ruleKey)}"` : "readonly"} aria-label="${esc(values.join(" / "))} ${type === "price" ? "fiyat" : type === "stock" ? "stok" : type === "sku" ? "SKU" : "hazırlık profili"}" ${["price", "stock"].includes(type) ? `type="number" min="${type === "price" ? "0.01" : "0"}" max="${type === "price" ? "1000000" : "100000"}" step="${type === "price" ? "0.01" : "1"}" required` : `maxlength="${type === "sku" ? 80 : 120}"`} value="${esc(type === "price" ? value / 100 : value)}"></td>`;
+        })
+        .join("");
+      return `<tr class="${draft.variantOverrides?.[key]?.visible === false ? "variant-hidden-row" : ""}"><td><button type="button" class="variant-photo-button" data-combo-photos="${esc(key)}" aria-label="${esc(values.join(" / "))} fotoğraf seç">${photos[0] ? `<img src="${esc(photos[0])}" alt="">` : "＋"}</button></td><td>${values.map(esc).join(" / ")}</td>${controls}<td><input type="checkbox" data-combo-visible="${esc(key)}" aria-label="${esc(values.join(" / "))} görünür" ${draft.variantOverrides?.[key]?.visible === false ? "" : "checked"}></td></tr>`;
+    })
+    .join("")}</tbody></table></div>`;
 }
 export function optionChange(target, modal) {
+  if (editorChange(target, modal) || variationInput(target)) return true;
   if (target.matches("[data-rule-toggle],[data-rule-scope]")) {
     captureRules();
     const type = target.dataset.ruleToggle || target.dataset.ruleScope,
@@ -288,27 +353,34 @@ export function optionChange(target, modal) {
     showVariationManager(modal);
     return true;
   }
-  if (target.matches("[data-group-kind]")) {
-    const form = target.closest("form"),
-      presets = {
-        size: ["Beden", ["XS", "S", "M", "L", "XL", "2XL"]],
-        color: ["Renk", ["Siyah", "Beyaz", "Krem"]],
-        placement: [
-          "Nakış konumu",
-          ["Sağ kol", "Sol kol", "Sol göğüs", "Göğüs ortası"],
-        ],
-        custom: ["", []],
-      };
-    const [name, options] = presets[target.value];
-    form.elements.name.value = name;
-    form.elements.options.value = options.join("\n");
-    renderMarkerEditor();
-    return true;
-  }
-  if (target.matches("[data-group-options]")) renderMarkerEditor();
   return false;
 }
 export function optionAction(target, modal, closeModal) {
+  if (target.closest("[data-add-variation-direct]")) {
+    showVariationManager(modal, true);
+    groupEditor(null, -1, modal);
+    return true;
+  }
+  if (editorAction(target, modal)) return true;
+  const photoButton = target.closest("[data-combo-photos]");
+  if (photoButton) {
+    const key = photoButton.dataset.comboPhotos;
+    choosePhotos(
+      productImages,
+      draft.variantOverrides?.[key]?.photos || [],
+      modal,
+      (photos) => {
+        draft.variantOverrides[key] = {
+          ...draft.variantOverrides[key],
+          photos,
+        };
+        closeModal();
+        renderVariationTable();
+      },
+      closeModal,
+    );
+    return true;
+  }
   const button = target.closest(
     "[data-manage-variations],[data-manager-back],[data-option-add],[data-option-edit],[data-option-remove],[data-field-type]",
   );
@@ -331,6 +403,7 @@ export function optionAction(target, modal, closeModal) {
     captureRules();
     if (button.dataset.optionRemove) {
       manager.variations.splice(index, 1);
+      manager.variantOverrides = {};
       showVariationManager(modal);
     } else
       groupEditor(
@@ -370,6 +443,42 @@ export function optionAction(target, modal, closeModal) {
   return true;
 }
 export function saveOption(form) {
+  if (form.dataset.kind === "variation") {
+    const record = readEditedGroup(),
+      index = Number(form.dataset.index),
+      next = structuredClone(manager),
+      renames = record.renames;
+    delete record.renames;
+    const groupIndex = index < 0 ? next.variations.length : index;
+    if (index < 0) next.variations.push(record);
+    else next.variations[index] = record;
+    const renameKey = (key, scope) => {
+      const values = JSON.parse(key),
+        position = scope === "*" ? groupIndex : 0;
+      if (scope === "*" || scope === record.id)
+        values[position] = renames[values[position]] || values[position];
+      return variantKey(values);
+    };
+    for (const rule of Object.values(next.variationRules))
+      if (rule.values)
+        rule.values = rule.values.map((row) => ({
+          ...row,
+          key: renameKey(row.key, rule.scope),
+        }));
+    const allowed = new Set(combinations(next.variations).map(variantKey));
+    next.variantOverrides = Object.fromEntries(
+      Object.entries(next.variantOverrides || {})
+        .map(([key, row]) => [renameKey(key, "*"), row])
+        .filter(([key]) => allowed.has(key)),
+    );
+    normalizeOptions({
+      ...next,
+      images: productImages,
+      variationRules: undefined,
+    });
+    manager = next;
+    return;
+  }
   const data = Object.fromEntries(new FormData(form)),
     variation = form.dataset.kind === "variation",
     index = Number(form.dataset.index);
@@ -414,6 +523,9 @@ function shirtSVG(marker) {
   return `<svg class="placement-shirt" viewBox="0 0 120 120" aria-hidden="true"><path d="M43 15 21 24 9 48 30 58 35 47 35 105 85 105 85 47 90 58 111 48 99 24 77 15C72 30 48 30 43 15Z" fill="${marker === "back" ? "#ecebe6" : "#faf9f5"}" stroke="currentColor" stroke-width="2"/><path d="M45 16Q60 39 75 16" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="${x}" cy="${y}" r="13" fill="#536751" opacity=".15"/><circle cx="${x}" cy="${y}" r="5" fill="#536751"/>${marker === "back" ? '<text x="60" y="93" text-anchor="middle" font-size="9" fill="currentColor">ARKA</text>' : ""}</svg>`;
 }
 function customerGroup(group) {
+  if (group.kind === "color")
+    return `<fieldset class="color-variation"><legend>${esc(group.name)} <span class="required-mark">*</span></legend><div class="color-swatch-list">${group.options.map((value) => `<label class="color-swatch-choice"><input type="radio" name="variation-${esc(group.id)}" value="${esc(value)}" data-customer-variation required><span><i style="background:${colorHex(value, group.swatches?.[value])}"></i><strong>${esc(value)}</strong><small data-option-stock></small></span></label>`).join("")}</div></fieldset>`;
+
   if (group.kind === "placement")
     return `<fieldset class="placement-fieldset"><legend>${esc(group.name)} <span class="required-mark">*</span></legend><p class="field-hint">Nakışın yapılmasını istediğin yeri seç.</p><div class="placement-grid">${group.options.map((value) => `<label class="placement-choice"><input type="radio" name="variation-${esc(group.id)}" value="${esc(value)}" data-customer-variation required><span>${shirtSVG(group.markers?.[value] || infer(value))}<strong>${esc(value)}</strong></span></label>`).join("")}</div></fieldset>`;
   return `<label>${esc(group.name)} <span class="required-mark">*</span><select name="variation-${esc(group.id)}" data-customer-variation required><option value="">Seçim yap</option>${group.options.map((value) => `<option>${esc(value)}</option>`).join("")}</select></label>`;

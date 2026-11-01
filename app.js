@@ -1,6 +1,10 @@
+import { variantPhotos } from "./variation-media.js";
 import { validatePhoto, moveToCover } from "./demo-storage.js";
 import {
   renderOptions,
+  syncVariationImages,
+  variationInput,
+  variationDrag,
   readOptions,
   optionAction,
   saveOption,
@@ -14,6 +18,7 @@ import {
   fieldsFor,
   resolveOptions,
   selectedVariant,
+  matchingVariants,
 } from "./product-options.js";
 import { categorySlug } from "./catalog-rules.js";
 import {
@@ -29,6 +34,7 @@ import {
   categoryCover,
 } from "./admin-catalog.js";
 import * as S from "./data.js";
+let detailGallery = { images: [], index: 0 };
 const $ = (s, r = document) => r.querySelector(s),
   $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const esc = (v) =>
@@ -151,7 +157,7 @@ function catalogPage(favorite = false) {
 function detailPage(id) {
   const p = S.catalog.products.find((p) => p.id === id && p.published);
   if (!p) return notFound();
-  main.innerHTML = `<section class="product-detail"><nav class="breadcrumbs"><a href="#/">Ana sayfa</a><span>/</span><a href="#/urunler">Koleksiyon</a><span>/</span><span>${esc(p.kind)}</span></nav><div class="detail-columns"><div><div class="detail-image"><img id="detailMainImage" src="${esc(p.image)}" alt="${esc(p.kind)}"><span class="product-badge">${esc(p.badge || "SANA ÖZEL")}</span></div><div class="gallery-thumbs">${(p.images || [p.image]).map((image, i) => `<button data-gallery="${i}" data-product-id="${esc(p.id)}" aria-label="Ürün görseli ${i + 1}"><img src="${esc(image)}" alt=""></button>`).join("")}</div><p class="catalog-note">Örnek görsel. Renk seçimi fotoğrafı değiştirmez; fotoğrafın nakışa dönüştürülmez.</p></div><div class="detail-copy"><div class="eyebrow">${esc(p.kind.toLocaleUpperCase("tr"))}</div><h1>${esc(p.name)}</h1><div class="detail-price">${money(p.price)} <span>${p.stock ? "Kişiye özel hazırlanır" : "Şu an tükendi"}</span></div><p>${esc(p.description)}</p><form data-form="add-product" data-id="${esc(p.id)}">${[
+  main.innerHTML = `<section class="product-detail"><nav class="breadcrumbs"><a href="#/">Ana sayfa</a><span>/</span><a href="#/urunler">Koleksiyon</a><span>/</span><span>${esc(p.kind)}</span></nav><div class="detail-columns"><div><div class="detail-image" tabindex="0" role="region" aria-label="Ürün fotoğraf galerisi"><button type="button" class="gallery-arrow previous" data-gallery-step="-1" aria-label="Önceki fotoğraf">‹</button><button type="button" class="gallery-arrow next" data-gallery-step="1" aria-label="Sonraki fotoğraf">›</button><span id="galleryCounter" class="gallery-counter" aria-live="polite"></span><img id="detailMainImage" src="${esc(p.image)}" alt="${esc(p.kind)}"><span class="product-badge">${esc(p.badge || "SANA ÖZEL")}</span></div><div class="gallery-thumbs" id="detailThumbs">${(p.images || [p.image]).map((image, i) => `<button data-gallery="${i}" data-product-id="${esc(p.id)}" aria-label="Ürün görseli ${i + 1}"><img src="${esc(image)}" alt=""></button>`).join("")}</div><p class="catalog-note">Örnek görsel. Fotoğrafı bağlı seçeneklerde galeri seçimine göre değişir.</p></div><div class="detail-copy"><div class="eyebrow">${esc(p.kind.toLocaleUpperCase("tr"))}</div><h1>${esc(p.name)}</h1><div class="detail-price">${money(p.price)} <span>${p.stock ? "Kişiye özel hazırlanır" : "Şu an tükendi"}</span></div><p>${esc(p.description)}</p><form data-form="add-product" data-id="${esc(p.id)}">${[
     ["color", "01 · Rengini seç", p.managedVariations ? [] : p.colors],
     ["size", "02 · Bedenini seç", p.managedVariations ? [] : p.sizes],
   ]
@@ -162,10 +168,12 @@ function detailPage(id) {
     )
     .join(
       "",
-    )}${customerOptions(p)}<div class="detail-purchase">${field("Adet", "quantity", 1, "number", `min="1" max="${Math.min(p.stock, 20) || 1}" required`)}<button class="button button-dark" ${p.stock ? "" : "disabled"}>${p.stock ? "Hikâyeme ekle" : "Tükendi"} ${icon("bag")}</button></div><div data-error></div><p class="field-hint">Örnek hazırlık: ${esc(S.catalog.settings.preparationDays)}. Demo siparişi üretime gönderilmez.</p></form><div class="product-accordions"><details open><summary>Ürün ve malzeme</summary><p>${esc(p.material)}</p></details><details><summary>Bakım önerileri</summary><p>${esc(p.care)}</p></details><details><summary>Teslimat ve kişiselleştirme</summary><p>Örnek kargo ücreti ${money(S.catalog.settings.shippingFee)}. İndirim sonrası ${money(S.catalog.settings.freeShippingThreshold)} ve üzeri sepette ücretsiz kargo hesaplanır.</p></details></div></div></div></section><section class="section-pad related-products"><div class="eyebrow">HİKÂYENE EŞLİK EDEBİLİR</div><h2>Bir de <em>bunlara bak.</em></h2><div class="product-grid">${S.catalog.products
+    )}${customerOptions(p)}<div class="detail-purchase">${field("Adet", "quantity", 1, "number", `min="1" max="${Math.min(p.stock, 20) || 1}" required`)}<button class="button button-dark" ${p.stock ? "" : "disabled"}>${p.stock ? "Hikâyeme ekle" : "Tükendi"} ${icon("bag")}</button></div><div data-error></div><p class="field-hint" id="detailProcessing">Örnek hazırlık: ${esc(S.catalog.settings.preparationDays)}. Demo siparişi üretime gönderilmez.</p></form><div class="product-accordions"><details open><summary>Ürün ve malzeme</summary><p>${esc(p.material)}</p></details><details><summary>Bakım önerileri</summary><p>${esc(p.care)}</p></details><details><summary>Teslimat ve kişiselleştirme</summary><p>Örnek kargo ücreti ${money(S.catalog.settings.shippingFee)}. İndirim sonrası ${money(S.catalog.settings.freeShippingThreshold)} ve üzeri sepette ücretsiz kargo hesaplanır.</p></details></div></div></div></section><section class="section-pad related-products"><div class="eyebrow">HİKÂYENE EŞLİK EDEBİLİR</div><h2>Bir de <em>bunlara bak.</em></h2><div class="product-grid">${S.catalog.products
     .filter((x) => x.published && x.id !== p.id)
     .map(card)
     .join("")}</div></section>`;
+  setDetailGallery(p, {});
+  updateDetailChoices(p);
 }
 function itemPrice(p, item) {
   try {
@@ -180,7 +188,7 @@ function cartRows() {
       const p = S.catalog.products.find((p) => p.id === i.id);
       if (!p)
         return `<div class="cart-row">Ürün artık mevcut değil.<button data-remove="${esc(i.key)}">Kaldır</button></div>`;
-      return `<article class="cart-row"><a href="#/urun/${encodeURIComponent(p.id)}"><img src="${esc(p.image)}" alt="${esc(p.kind)}"></a><div><span class="product-category">${esc(p.kind)}</span><a href="#/urun/${encodeURIComponent(p.id)}"><h3>${esc(p.name)}</h3></a>${!i.managedVariations ? `<p>${esc(i.color)} · ${esc(i.size)}</p>` : ""}${selectionsHTML(i)}${i.sku ? `<small>Ürün kodu: ${esc(i.sku)}</small>` : ""}${!i.optionAnswers && i.note ? `<p>Not: ${esc(i.note)}</p>` : ""}${i.photoSelected ? "<p>Fotoğraf seçildi · Demo kişiselleştirme</p>" : ""}<button class="remove-item" data-remove="${esc(i.key)}">Kaldır</button></div><div class="cart-row-total"><strong>${money(itemPrice(p, i) * i.quantity)}</strong><div class="quantity"><button data-quantity="${esc(i.key)}" data-change="-1" aria-label="${esc(p.kind)} adedini azalt">−</button><span>${i.quantity}</span><button data-quantity="${esc(i.key)}" data-change="1" aria-label="${esc(p.kind)} adedini artır">+</button></div></div></article>`;
+      return `<article class="cart-row"><a href="#/urun/${encodeURIComponent(p.id)}"><img src="${esc(i.image || p.image)}" alt="${esc(p.kind)}"></a><div><span class="product-category">${esc(p.kind)}</span><a href="#/urun/${encodeURIComponent(p.id)}"><h3>${esc(p.name)}</h3></a>${!i.managedVariations ? `<p>${esc(i.color)} · ${esc(i.size)}</p>` : ""}${selectionsHTML(i)}${i.sku ? `<small>Ürün kodu: ${esc(i.sku)}</small>` : ""}${i.processingProfile ? `<small>Hazırlık: ${esc(i.processingProfile)}</small>` : ""}${!i.optionAnswers && i.note ? `<p>Not: ${esc(i.note)}</p>` : ""}${i.photoSelected ? "<p>Fotoğraf seçildi · Demo kişiselleştirme</p>" : ""}<button class="remove-item" data-remove="${esc(i.key)}">Kaldır</button></div><div class="cart-row-total"><strong>${money(itemPrice(p, i) * i.quantity)}</strong><div class="quantity"><button data-quantity="${esc(i.key)}" data-change="-1" aria-label="${esc(p.kind)} adedini azalt">−</button><span>${i.quantity}</span><button data-quantity="${esc(i.key)}" data-change="1" aria-label="${esc(p.kind)} adedini artır">+</button></div></div></article>`;
     })
     .join("");
 }
@@ -212,7 +220,7 @@ async function checkoutPage() {
     `<section class="checkout-layout"><form data-form="checkout" class="surface-form"><div class="checkout-steps"><span>01 Sepet</span><span class="current">02 Teslimat</span><span>03 Demo onayı</span></div><h2>Hikâyen nereye gelsin?</h2><p class="field-hint">Bu bir demo. Gerçek kişisel bilgiler yerine örnek bilgiler kullanabilirsin.</p><div class="form-grid">${field("Ad soyad", "name", S.user?.name || "", "text", 'required minlength="3" maxlength="100" placeholder="Deniz Örnek"')}${field("E-posta", "email", S.user?.email || "", "email", 'required maxlength="160" placeholder="deniz@example.com"')}${field("Telefon", "phone", "", "tel", 'required minlength="10" maxlength="30" placeholder="0555 000 00 00"')}<label>İl<select name="city" required><option value="">İl seç</option>${cities.map((c) => `<option>${c}</option>`).join("")}</select></label>${field("İlçe", "district", "", "text", 'required minlength="2" maxlength="80" placeholder="Örnek ilçe"')}${field("Posta kodu (isteğe bağlı)", "postalCode", "", "text", 'pattern="[0-9]{5}" maxlength="5" placeholder="34000"')}<label class="full-width">Açık adres<textarea name="address" required minlength="10" maxlength="400" placeholder="Örnek mahalle, sokak, bina ve daire"></textarea></label></div><label class="checkbox-line"><input name="consent" type="checkbox" required> Bunun gerçek ödeme veya gönderim oluşturmayan bir demo siparişi olduğunu anladım.</label><div data-error></div><button class="button button-dark">Demo siparişini oluştur ${icon("arrow")}</button><p class="field-hint">Kart bilgisi istenmez. Vergi faturası veya kargo kaydı oluşturulmaz.</p></form><aside class="order-summary"><div class="eyebrow">SEÇTİĞİN PARÇALAR</div>${S.cart
       .map((i) => {
         const p = S.catalog.products.find((p) => p.id === i.id);
-        return `<div class="checkout-item"><img src="${esc(p.image)}" alt=""><div>${esc(p.kind)}<small>${i.managedVariations ? "" : esc(i.color) + " · " + esc(i.size) + " · "}${i.quantity} adet</small>${selectionsHTML(i)}${i.sku ? `<small>Ürün kodu: ${esc(i.sku)}</small>` : ""}</div><span>${money(itemPrice(p, i) * i.quantity)}</span></div>`;
+        return `<div class="checkout-item"><img src="${esc(p.image)}" alt=""><div>${esc(p.kind)}<small>${i.managedVariations ? "" : esc(i.color) + " · " + esc(i.size) + " · "}${i.quantity} adet</small>${selectionsHTML(i)}${i.sku ? `<small>Ürün kodu: ${esc(i.sku)}</small>` : ""}${i.processingProfile ? `<small>Hazırlık: ${esc(i.processingProfile)}</small>` : ""}</div><span>${money(itemPrice(p, i) * i.quantity)}</span></div>`;
       })
       .join("")}${await totals()}</aside></section>`;
 }
@@ -232,7 +240,7 @@ async function orderPage(id) {
       )
       .join(
         "",
-      )}</div></div><div class="order-detail-grid"><div class="surface"><h3>Seçtiğin parçalar</h3>${o.items.map((i) => `<div class="checkout-item"><img src="${esc(i.image)}" alt=""><div>${esc(i.kind)}<small>${i.managedVariations ? "" : esc(i.color) + " · " + esc(i.size) + " · "}${i.quantity} adet</small>${selectionsHTML(i)}${i.sku ? `<small>Ürün kodu: ${esc(i.sku)}</small>` : ""}${!i.optionAnswers && i.note ? `<small>${esc(i.note)}</small>` : ""}${i.uploadId && S.mode === "server" ? `<a class="subtle-link" href="./api/uploads/${encodeURIComponent(i.uploadId)}" target="_blank" rel="noopener">Fotoğrafı görüntüle</a>` : ""}</div><span>${money(i.price * i.quantity)}</span></div>`).join("")}<div class="total-line grand-total"><strong>Demo toplam</strong><strong>${money(o.total)}</strong></div></div><div class="surface"><h3>Teslimat bilgileri</h3><p>${esc(o.customer.name)}<br>${esc(o.customer.address)}<br>${esc(o.customer.district)} / ${esc(o.customer.city)}</p><p>${esc(o.customer.email)}<br>${esc(o.customer.phone)}</p><p class="field-hint">Tahsilat, gerçek üretim ve kargo başlatılmadı.</p></div></div><a href="#/urunler" class="text-link">Yeni hikâyeler keşfet ${icon("arrow")}</a></section>`;
+      )}</div></div><div class="order-detail-grid"><div class="surface"><h3>Seçtiğin parçalar</h3>${o.items.map((i) => `<div class="checkout-item"><img src="${esc(i.image)}" alt=""><div>${esc(i.kind)}<small>${i.managedVariations ? "" : esc(i.color) + " · " + esc(i.size) + " · "}${i.quantity} adet</small>${selectionsHTML(i)}${i.sku ? `<small>Ürün kodu: ${esc(i.sku)}</small>` : ""}${i.processingProfile ? `<small>Hazırlık: ${esc(i.processingProfile)}</small>` : ""}${!i.optionAnswers && i.note ? `<small>${esc(i.note)}</small>` : ""}${i.uploadId && S.mode === "server" ? `<a class="subtle-link" href="./api/uploads/${encodeURIComponent(i.uploadId)}" target="_blank" rel="noopener">Fotoğrafı görüntüle</a>` : ""}</div><span>${money(i.price * i.quantity)}</span></div>`).join("")}<div class="total-line grand-total"><strong>Demo toplam</strong><strong>${money(o.total)}</strong></div></div><div class="surface"><h3>Teslimat bilgileri</h3><p>${esc(o.customer.name)}<br>${esc(o.customer.address)}<br>${esc(o.customer.district)} / ${esc(o.customer.city)}</p><p>${esc(o.customer.email)}<br>${esc(o.customer.phone)}</p><p class="field-hint">Tahsilat, gerçek üretim ve kargo başlatılmadı.</p></div></div><a href="#/urunler" class="text-link">Yeni hikâyeler keşfet ${icon("arrow")}</a></section>`;
 }
 async function accountPage() {
   if (!S.user) return authPage();
@@ -565,12 +573,9 @@ document.addEventListener("click", async (event) => {
       const open = $("#mainNav").classList.toggle("open");
       t.setAttribute("aria-expanded", String(open));
     }
-    if (t.dataset.gallery !== undefined) {
-      const p = S.catalog.products.find((p) => p.id === t.dataset.productId);
-      $("#detailMainImage").src = (p.images || [p.image])[
-        Number(t.dataset.gallery)
-      ];
-    }
+    if (t.dataset.gallery !== undefined) showGallery(Number(t.dataset.gallery));
+    if (t.dataset.galleryStep)
+      showGallery(detailGallery.index + Number(t.dataset.galleryStep));
     if (t.dataset.cover !== undefined) {
       editorImages = moveToCover(editorImages, Number(t.dataset.cover));
       renderEditorGallery();
@@ -730,6 +735,7 @@ document.addEventListener("click", async (event) => {
   }
 });
 document.addEventListener("input", (event) => {
+  if (variationInput(event.target)) return;
   if (
     event.target.id === "categoryName" &&
     $("#categorySlug")?.dataset.auto === "true"
@@ -749,20 +755,12 @@ document.addEventListener("change", async (event) => {
     if (event.target.matches("[data-customer-variation]")) {
       const form = event.target.closest("form"),
         p = S.catalog.products.find((p) => p.id === form.dataset.id);
-      const selections = Object.fromEntries(
-        (p.variations || []).map((group) => [
-          group.id,
-          form.elements["variation-" + group.id].value,
-        ]),
+      updateDetailChoices(p);
+      setDetailGallery(
+        p,
+        detailSelections(p, form),
+        event.target.name.slice("variation-".length),
       );
-      if ((p.variations || []).every((group) => selections[group.id])) {
-        const variant = selectedVariant(p, selections);
-        $(".detail-price").firstChild.textContent = money(variant.price) + " ";
-        $("#variantAvailability").textContent = variant.stock
-          ? `Seçtiğin birleşim: ${variant.stock} adet stokta`
-          : "Seçtiğin birleşim tükendi.";
-        form.elements.quantity.max = Math.min(20, variant.stock) || 1;
-      }
     }
     if (event.target.matches("[data-custom-photo]")) {
       const form = event.target.closest("form"),
@@ -975,6 +973,8 @@ document.addEventListener("submit", async (event) => {
           size: data.size || p.sizes[0],
           managedVariations: p.managedVariations,
           sku: resolved.sku,
+          image: variantPhotos(p, selections)[0] || p.image,
+          processingProfile: resolved.processingProfile,
           quantity,
           selections,
           answers,
@@ -1075,7 +1075,7 @@ document.addEventListener("submit", async (event) => {
           images: [...editorImages],
           swatches: old?.swatches || ["#d8cfb9"],
         });
-        await adminPage();
+        if (location.hash.startsWith("#/admin")) await adminPage();
         toast("Ürün kaydedildi.");
         break;
       }
@@ -1188,6 +1188,7 @@ await render();
 
 function renderEditorGallery() {
   if (!$("#editorGallery")) return;
+  syncVariationImages(editorImages);
   const cover = $("#coverPreview");
   if (cover)
     cover.innerHTML = editorImages[0]
@@ -1366,4 +1367,171 @@ function adminMenuIcon(key) {
     legal: '<path d="M5 2h10l4 4v16H5zM14 2v5h5M8 11h8M8 15h8M8 19h5"/>',
   };
   return `<svg viewBox="0 0 24 24" aria-hidden="true">${shapes[key] || shapes.overview}</svg>`;
+}
+
+let touchOrigin;
+document.addEventListener(
+  "touchstart",
+  (event) => {
+    if (event.target.closest(".detail-image"))
+      touchOrigin = {
+        x: event.touches[0].clientX,
+        y: event.touches[0].clientY,
+      };
+  },
+  { passive: true },
+);
+document.addEventListener(
+  "touchend",
+  (event) => {
+    if (!touchOrigin || !event.target.closest(".detail-image")) return;
+    const dx = event.changedTouches[0].clientX - touchOrigin.x,
+      dy = event.changedTouches[0].clientY - touchOrigin.y;
+    if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy))
+      showGallery(detailGallery.index + (dx < 0 ? 1 : -1));
+    touchOrigin = null;
+  },
+  { passive: true },
+);
+document.addEventListener("keydown", (event) => {
+  if (event.target.id === "newVariationOption" && event.key === "Enter") {
+    event.preventDefault();
+    document.querySelector("[data-option-append]").click();
+  }
+  if (
+    event.target.closest(".detail-image") &&
+    ["ArrowLeft", "ArrowRight"].includes(event.key)
+  ) {
+    event.preventDefault();
+    showGallery(detailGallery.index + (event.key === "ArrowRight" ? 1 : -1));
+  }
+});
+for (const type of ["dragstart", "dragover", "drop"])
+  document.addEventListener(type, (event) => variationDrag(event, modal));
+function detailSelections(
+  p,
+  form = document.querySelector('[data-form="add-product"]'),
+) {
+  return Object.fromEntries(
+    (p.variations || []).map((group) => [
+      group.id,
+      form?.elements["variation-" + group.id]?.value || "",
+    ]),
+  );
+}
+function updateDetailChoices(p) {
+  const form = document.querySelector('[data-form="add-product"]');
+  if (!form) return;
+  const selected = detailSelections(p, form);
+  for (const group of p.variations || []) {
+    const controls = [
+      ...form.querySelectorAll("[data-customer-variation]"),
+    ].filter((input) => input.name === "variation-" + group.id);
+    for (const control of controls) {
+      const options =
+        control.tagName === "SELECT"
+          ? [...control.options].filter((option) => option.value)
+          : [control];
+      for (const option of options) {
+        const value = option.dataset.optionValue ?? option.value;
+        option.dataset.optionValue = value;
+        const global = matchingVariants(p, { [group.id]: value }),
+          states = matchingVariants(p, { ...selected, [group.id]: value }),
+          sold =
+            states.length > 0 && states.every((state) => state.stock === 0);
+        option.disabled = !states.some((state) => state.stock > 0);
+        if (control.tagName === "SELECT") {
+          option.value = value;
+          option.textContent =
+            value +
+            (sold ? " · Tükendi" : !states.length ? " · Kullanılamıyor" : "");
+          option.hidden = !global.length;
+        } else {
+          const label = option.closest("label");
+          label.hidden = !global.length;
+          label.classList.toggle("unavailable", option.disabled);
+          const hint = label.querySelector("[data-option-stock]");
+          if (hint)
+            hint.textContent = sold
+              ? "Tükendi"
+              : !states.length
+                ? "Kullanılamıyor"
+                : "";
+        }
+      }
+    }
+  }
+  const complete = (p.variations || []).every((group) => selected[group.id]);
+  const states = matchingVariants(p, selected),
+    button = form.querySelector(".detail-purchase button");
+  let current = null;
+  try {
+    if (complete) current = selectedVariant(p, selected);
+  } catch {}
+  button.disabled = !current || current.stock < 1;
+  button.textContent =
+    current && current.stock === 0 ? "Tükendi" : "Hikâyeme ekle";
+  const status = document.querySelector("#variantAvailability");
+  if (status)
+    status.textContent = current
+      ? current.stock
+        ? `Seçtiğin birleşim: ${current.stock} adet stokta`
+        : "Seçtiğin birleşim tükendi."
+      : complete
+        ? "Bu birleşim şu anda kullanılamıyor."
+        : "Seçeneklerini tamamla.";
+  if (
+    current ||
+    (states.length && states.every((state) => state.price === states[0].price))
+  )
+    document.querySelector(".detail-price").firstChild.textContent =
+      money(current?.price ?? states[0].price) + " ";
+  else
+    document.querySelector(".detail-price").firstChild.textContent =
+      money(p.price) + " ";
+  if (current) form.elements.quantity.max = Math.min(20, current.stock) || 1;
+  document.querySelector("#detailProcessing").textContent =
+    "Örnek hazırlık: " +
+    (current?.processingProfile || S.catalog.settings.preparationDays) +
+    ". Demo siparişi üretime gönderilmez.";
+}
+function setDetailGallery(p, selected, preferred) {
+  detailGallery = {
+    id: p.id,
+    images: variantPhotos(p, selected, preferred),
+    index: 0,
+  };
+  document.querySelector("#detailThumbs").innerHTML = detailGallery.images
+    .map(
+      (src, index) =>
+        `<button type="button" data-gallery="${index}" aria-label="Ürün görseli ${index + 1}"><img src="${esc(src)}" alt=""></button>`,
+    )
+    .join("");
+  showGallery(0);
+}
+function showGallery(index) {
+  const img = document.querySelector("#detailMainImage");
+  if (!img || !detailGallery.images.length) return;
+  const count = detailGallery.images.length;
+  detailGallery.index = (index + count) % count;
+  const src = detailGallery.images[detailGallery.index];
+  if (img.getAttribute("src") !== src) {
+    img.classList.add("gallery-loading");
+    img.onload = () => img.classList.remove("gallery-loading");
+    img.onerror = () => img.classList.remove("gallery-loading");
+    img.src = src;
+  }
+  document
+    .querySelectorAll("[data-gallery-step]")
+    .forEach((button) => (button.hidden = count < 2));
+  document.querySelector("#galleryCounter").textContent =
+    `${detailGallery.index + 1} / ${count}`;
+  document
+    .querySelectorAll("#detailThumbs [data-gallery]")
+    .forEach((button, index) =>
+      button.setAttribute(
+        "aria-current",
+        String(index === detailGallery.index),
+      ),
+    );
 }

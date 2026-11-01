@@ -272,6 +272,8 @@ const server = http.createServer(async (req, res) => {
         "app.js",
         "product-options.js",
         "options-ui.js",
+        "variation-media.js",
+        "variation-editor.js",
         "data.js",
         "demo-storage.js",
         "catalog-rules.js",
