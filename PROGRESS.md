@@ -116,3 +116,7 @@ Temiz tarayıcıda ilk açılış ayrıca test edildi. Örnek sipariş verisi ge
 - Müşteride renk swatchları, filtrelenen galeri, önceki/sonraki oklar, klavye ve dokunmatik kaydırma; gizli/tükenmiş seçenek denetimi ve doğru fotoğraf/profille sepet/sipariş kaydı.
 - Yeni modüller: variation-editor.js (yalnızca varyasyon modalı ve fotoğraf seçici), variation-media.js (renk, sıralama ve galeri çözümleme). product-options.js ve mevcut API modeli geriye uyumlu genişletildi.
 - 27 test geçti. Tarayıcıda sıralama, HEX, iki/tek fotoğraf bağlantısı, Tamam→Yönet→Uygula→tablo→kayıt→yenile→renk/galeri→sepet akışı doğrulandı. Fiziksel telefonda swipe testi yapılmadı. Ortak sunucu kayıt konusu bu isteğin kapsamı dışında kaldı.
+
+## 1 Kasım — ana konum + ücretli ek nakışlar
+
+Nakış konumu editöründe Ana konuma ek nakış konumları sun seçeneği eklendi. Her konum satırında Ek nakış olarak sun ve ürün başına ek ücret bulunur. Müşteri ana göğüs konumunu seçip ayrıca sol kol (+250 TL) gibi birden fazla kutuyu işaretleyebilir. Ücretler ortak sunucu doğrulamasından geçerek ana varyasyon fiyatına eklenir; aynı konum iki kez veya ana konumun tekrarı seçilemez. Bir tişört için stok bir adet düşer. Fiyat ve tüm konumlar sepete/siparişe kaydedilir. Kişiselleştirme korunur. 29 test geçti; tarayıcıda 2490→2740 TL ve Göğüs ortası + Sol kol sepet aktarımı doğrulandı.

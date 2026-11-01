@@ -58,6 +58,123 @@ const order = (key = randomUUID()) => ({
   customer,
   consent: true,
 });
+function extraEmbroideryProduct(s) {
+  return s.saveProduct(
+    {
+      ...s.products(true).find((p) => p.id === "lucky"),
+      price: 90000,
+      managedVariations: true,
+      variations: [
+        {
+          id: "location",
+          name: "Nakış konumu",
+          kind: "placement",
+          options: ["Göğüs", "Sol kol", "Sağ kol"],
+          allowExtras: true,
+          extraOptions: ["Sol kol", "Sağ kol"],
+          extraPrices: { "Sol kol": 25000, "Sağ kol": 15000 },
+        },
+      ],
+      variants: [],
+      variationRules: undefined,
+      variantOverrides: {},
+    },
+    "admin",
+  );
+}
+test("ana nakışa birden fazla ek konum ücreti eklenir; tek ürün stoku düşer", (t) => {
+  const s = fixture(t);
+  extraEmbroideryProduct(s);
+  const selected = (extras) => ({
+    ...item,
+    selections: { location: "Göğüs", $extras: { location: extras } },
+    price: 1,
+  });
+  assert.equal(s.calculate({ items: [selected([])] }, "owner").subtotal, 90000);
+  assert.equal(
+    s.calculate({ items: [selected(["Sol kol"])] }, "owner").subtotal,
+    115000,
+  );
+  assert.equal(
+    s.calculate({ items: [selected(["Sol kol", "Sağ kol"])] }, "owner")
+      .subtotal,
+    130000,
+  );
+  const saved = s.createOrder(
+    { ...order(), coupon: "", items: [selected(["Sol kol"])] },
+    "owner",
+    null,
+  );
+  assert.equal(saved.items[0].price, 115000);
+  assert.ok(
+    saved.items[0].optionSelections.some(
+      (row) => row.value.includes("Sol kol") && row.value.includes("250"),
+    ),
+  );
+  assert.equal(s.products(true).find((p) => p.id === "lucky").stock, 23);
+});
+test("ek nakış tekrar, ana konum, geçersiz konum ve kapalı özellik üzerinden eklenemez", (t) => {
+  const s = fixture(t),
+    p = extraEmbroideryProduct(s);
+  for (const extras of [["Sol kol", "Sol kol"], ["Göğüs"], ["Sırt"]])
+    assert.throws(
+      () =>
+        s.calculate(
+          {
+            items: [
+              {
+                ...item,
+                selections: {
+                  location: "Göğüs",
+                  $extras: { location: extras },
+                },
+              },
+            ],
+          },
+          "owner",
+        ),
+      /ek nakış/,
+    );
+  assert.throws(
+    () =>
+      normalizeOptions({
+        ...p,
+        variations: p.variations.map((group) => ({
+          ...group,
+          extraPrices: { "Sol kol": -1 },
+        })),
+      }),
+    /fiyatını/,
+  );
+  s.saveProduct(
+    {
+      ...p,
+      variations: p.variations.map((group) => ({
+        ...group,
+        allowExtras: false,
+      })),
+    },
+    "admin",
+  );
+  assert.throws(
+    () =>
+      s.calculate(
+        {
+          items: [
+            {
+              ...item,
+              selections: {
+                location: "Göğüs",
+                $extras: { location: ["Sol kol"] },
+              },
+            },
+          ],
+        },
+        "owner",
+      ),
+    /ek nakış/,
+  );
+});
 test("Türkçe/İngilizce renkler, manuel HEX ve erişilebilir sıralama", () => {
   assert.equal(colorHex("Mavi"), colorHex("BLUE"));
   assert.equal(colorHex("Beyaz"), "#ffffff");

@@ -1,5 +1,5 @@
-import { variantPhotos } from "./variation-media.js?v=add7483aa78d";
-import { validatePhoto, moveToCover } from "./demo-storage.js?v=add7483aa78d";
+import { variantPhotos } from "./variation-media.js?v=196d1669caaa";
+import { validatePhoto, moveToCover } from "./demo-storage.js?v=196d1669caaa";
 import {
   renderOptions,
   syncVariationImages,
@@ -13,27 +13,27 @@ import {
   showVariationManager,
   customerOptions,
   selectionsHTML,
-} from "./options-ui.js?v=add7483aa78d";
+} from "./options-ui.js?v=196d1669caaa";
 import {
   fieldsFor,
   resolveOptions,
   selectedVariant,
   matchingVariants,
-} from "./product-options.js?v=add7483aa78d";
-import { categorySlug } from "./catalog-rules.js?v=add7483aa78d";
+} from "./product-options.js?v=196d1669caaa";
+import { categorySlug } from "./catalog-rules.js?v=196d1669caaa";
 import {
   siteFooter,
   bannerEditor,
   legalEditor,
   legalBody,
-} from "./store-content.js?v=add7483aa78d";
+} from "./store-content.js?v=196d1669caaa";
 import {
   productEditor,
   taxonomyPage,
   taxonomyEditor,
   categoryCover,
-} from "./admin-catalog.js?v=add7483aa78d";
-import * as S from "./data.js?v=add7483aa78d";
+} from "./admin-catalog.js?v=196d1669caaa";
+import * as S from "./data.js?v=196d1669caaa";
 let detailGallery = { images: [], index: 0 };
 const $ = (s, r = document) => r.querySelector(s),
   $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -752,14 +752,17 @@ document.addEventListener("input", (event) => {
 document.addEventListener("change", async (event) => {
   try {
     if (optionChange(event.target, modal)) return;
-    if (event.target.matches("[data-customer-variation]")) {
+    if (
+      event.target.matches("[data-customer-variation],[data-extra-location]")
+    ) {
       const form = event.target.closest("form"),
         p = S.catalog.products.find((p) => p.id === form.dataset.id);
       updateDetailChoices(p);
       setDetailGallery(
         p,
         detailSelections(p, form),
-        event.target.name.slice("variation-".length),
+        event.target.dataset.extraLocation ||
+          event.target.name.slice("variation-".length),
       );
     }
     if (event.target.matches("[data-custom-photo]")) {
@@ -926,12 +929,7 @@ document.addEventListener("submit", async (event) => {
           .reduce((s, i) => s + i.quantity, 0);
         if (count + quantity > p.stock)
           throw new Error("Sepetindeki toplam adet stok miktarını aşıyor.");
-        const selections = Object.fromEntries(
-          (p.variations || []).map((group) => [
-            group.id,
-            data["variation-" + group.id],
-          ]),
-        );
+        const selections = detailSelections(p, form);
         const answers = {};
         for (const field of fieldsFor(p)) {
           if (field.type === "file") {
@@ -1412,12 +1410,23 @@ function detailSelections(
   p,
   form = document.querySelector('[data-form="add-product"]'),
 ) {
-  return Object.fromEntries(
+  const selected = Object.fromEntries(
     (p.variations || []).map((group) => [
       group.id,
       form?.elements["variation-" + group.id]?.value || "",
     ]),
   );
+  selected.$extras = {};
+  for (const input of form?.querySelectorAll("[data-extra-location]") || []) {
+    const id = input.dataset.extraLocation,
+      same = input.value === selected[id];
+    input.disabled = !selected[id] || same;
+    input.closest("label").hidden = same;
+    if (same) input.checked = false;
+    if (input.checked && !input.disabled)
+      (selected.$extras[id] ??= []).push(input.value);
+  }
+  return selected;
 }
 function updateDetailChoices(p) {
   const form = document.querySelector('[data-form="add-product"]');
@@ -1475,7 +1484,7 @@ function updateDetailChoices(p) {
   if (status)
     status.textContent = current
       ? current.stock
-        ? `Seçtiğin birleşim: ${current.stock} adet stokta`
+        ? `Seçtiğin birleşim: ${current.stock} adet stokta${current.extrasPrice ? " · Ek nakış: +" + money(current.extrasPrice) : ""}`
         : "Seçtiğin birleşim tükendi."
       : complete
         ? "Bu birleşim şu anda kullanılamıyor."

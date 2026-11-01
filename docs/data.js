@@ -1,12 +1,12 @@
-import { variantPhotos } from "./variation-media.js?v=add7483aa78d";
-import * as D from "./demo-storage.js?v=add7483aa78d";
+import { variantPhotos } from "./variation-media.js?v=196d1669caaa";
+import * as D from "./demo-storage.js?v=196d1669caaa";
 import {
   normalizeOptions,
   resolveOptions,
   selectedVariant,
   reduceVariantStock,
-} from "./product-options.js?v=add7483aa78d";
-import { normalizeContent, validateContent } from "./content-defaults.js?v=add7483aa78d";
+} from "./product-options.js?v=196d1669caaa";
+import { normalizeContent, validateContent } from "./content-defaults.js?v=196d1669caaa";
 import {
   defaultCategories,
   defaultCollections,
@@ -14,13 +14,13 @@ import {
   categoryDetails,
   productAssignments,
   assertRemovable,
-} from "./catalog-rules.js?v=add7483aa78d";
+} from "./catalog-rules.js?v=196d1669caaa";
 export const mode = window.NEEDLEMARKS_CONFIG?.mode || "demo";
 if (mode === "demo") await D.initialize();
 export const read = D.read;
 export const write = D.write;
 export const uid = () => crypto.randomUUID();
-const seed = await fetch("./data/catalog.json?v=add7483aa78d").then((r) => r.json());
+const seed = await fetch("./data/catalog.json?v=196d1669caaa").then((r) => r.json());
 export let catalog = {
   products: read("products", seed.products),
   settings: read("settings", seed.settings),

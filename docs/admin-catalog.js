@@ -1,5 +1,5 @@
-import { optionsEditor } from "./options-ui.js?v=add7483aa78d";
-import { assignmentCount, categorySlug } from "./catalog-rules.js?v=add7483aa78d";
+import { optionsEditor } from "./options-ui.js?v=196d1669caaa";
+import { assignmentCount, categorySlug } from "./catalog-rules.js?v=196d1669caaa";
 
 const esc = (value) =>
   String(value ?? "").replace(

@@ -1,4 +1,4 @@
-import { colorHex, validHex, reorderOptions } from "./variation-media.js?v=add7483aa78d";
+import { colorHex, validHex, reorderOptions } from "./variation-media.js?v=196d1669caaa";
 const esc = (value) =>
   String(value ?? "").replace(
     /[&<>"']/g,
@@ -30,10 +30,19 @@ function readRows() {
   edit.name = form.elements.name.value;
   edit.kind = form.elements.kind.value;
   edit.linkPhotos = form.elements.linkPhotos.checked;
+  edit.allowExtras = form.elements.allowExtras?.checked === true;
   edit.rows = [...form.querySelectorAll("[data-option-row]")].map(
     (row, index) => ({
       ...edit.rows[index],
       name: row.querySelector("[data-option-name]").value.trim(),
+      extra:
+        row.querySelector("[data-extra-enabled]")?.checked ??
+        edit.rows[index].extra,
+      extraPrice: row.querySelector("[data-extra-price]")
+        ? Math.round(
+            Number(row.querySelector("[data-extra-price]").value) * 100,
+          )
+        : edit.rows[index].extraPrice,
       hex:
         row.querySelector("[data-option-hex]")?.value || edit.rows[index].hex,
       marker:
@@ -56,7 +65,7 @@ function draw(modal, focusIndex) {
       )
       .join(
         "",
-      )}</select></label><label>Varyasyon adı<input name="name" required maxlength="80" value="${esc(edit.name)}" placeholder="Örn. Renkler"></label></div><label class="checkbox-line"><input name="linkPhotos" type="checkbox" data-link-photos ${edit.linkPhotos ? "checked" : ""}> Bu varyasyona fotoğraf bağla</label><p class="field-hint">Seçenekleri tutamaçtan sürükleyebilir veya oklarla sıralayabilirsin.</p><div class="rich-option-list">${edit.rows
+      )}</select></label><label>Varyasyon adı<input name="name" required maxlength="80" value="${esc(edit.name)}" placeholder="Örn. Renkler"></label></div><label class="checkbox-line"><input name="linkPhotos" type="checkbox" data-link-photos ${edit.linkPhotos ? "checked" : ""}> Bu varyasyona fotoğraf bağla</label>${edit.kind === "placement" ? `<label class="checkbox-line"><input name="allowExtras" type="checkbox" data-allow-extras ${edit.allowExtras ? "checked" : ""}> Ana konuma ek nakış konumları sun</label>${edit.allowExtras ? '<p class="field-hint">Müşteri önce ana konumu seçer. Aşağıda işaretlediğin ek konumları da seçebilir; ücret ana ürün fiyatına eklenir.</p>' : ""}` : ""}<p class="field-hint">Seçenekleri tutamaçtan sürükleyebilir veya oklarla sıralayabilirsin.</p><div class="rich-option-list">${edit.rows
       .map(
         (row, index) =>
           `<div class="rich-option-row" data-option-row="${index}"><button type="button" draggable="true" class="option-grip" data-option-grip="${index}" aria-label="${esc(row.name || "Seçenek")} sıralama tutamacı">⠿</button><span class="option-preview" style="--option-color:${colorHex(row.name, row.hex)}">${row.photos[0] ? `<img src="${esc(row.photos[0])}" alt="">` : ""}</span><div class="option-row-main"><input data-option-name aria-label="${index + 1}. seçenek adı" required maxlength="80" value="${esc(row.name)}">${edit.kind === "color" ? `<div class="option-hex-controls"><input type="color" data-option-color aria-label="${esc(row.name)} renk seçici" value="${colorHex(row.name, row.hex)}"><input data-option-hex aria-label="${esc(row.name)} HEX" pattern="#[A-Fa-f0-9]{6}" maxlength="7" required value="${esc(row.hex)}"></div>` : ""}${
@@ -70,7 +79,7 @@ function draw(modal, focusIndex) {
                   )
                   .join("")}</select>`
               : ""
-          }${edit.linkPhotos ? `<button type="button" class="option-photo-link" data-option-photos="${index}">${row.photos.length ? row.photos.length + " fotoğraf bağlı" : "Fotoğraf bağla"}</button>` : ""}</div><div class="option-order-controls"><button type="button" data-option-move="${index}" data-direction="-1" ${index === 0 ? "disabled" : ""} aria-label="${esc(row.name)} yukarı taşı">↑</button><button type="button" data-option-move="${index}" data-direction="1" ${index === edit.rows.length - 1 ? "disabled" : ""} aria-label="${esc(row.name)} aşağı taşı">↓</button></div><button type="button" class="option-delete" data-option-delete="${index}" aria-label="${esc(row.name)} seçeneğini sil">×</button></div>`,
+          }${edit.kind === "placement" && edit.allowExtras ? `<div class="extra-placement-controls"><label><input type="checkbox" data-extra-enabled ${row.extra ? "checked" : ""}> Ek nakış olarak sun</label><label>Ek ücret (₺ / ürün)<input type="number" data-extra-price min="0" max="1000000" step="0.01" required value="${(row.extraPrice || 0) / 100}" aria-label="${esc(row.name)} ek nakış ücreti"></label></div>` : ""}${edit.linkPhotos ? `<button type="button" class="option-photo-link" data-option-photos="${index}">${row.photos.length ? row.photos.length + " fotoğraf bağlı" : "Fotoğraf bağla"}</button>` : ""}</div><div class="option-order-controls"><button type="button" data-option-move="${index}" data-direction="-1" ${index === 0 ? "disabled" : ""} aria-label="${esc(row.name)} yukarı taşı">↑</button><button type="button" data-option-move="${index}" data-direction="1" ${index === edit.rows.length - 1 ? "disabled" : ""} aria-label="${esc(row.name)} aşağı taşı">↓</button></div><button type="button" class="option-delete" data-option-delete="${index}" aria-label="${esc(row.name)} seçeneğini sil">×</button></div>`,
       )
       .join(
         "",
@@ -95,6 +104,8 @@ export function openGroupEditor(group, index, modal, images) {
     rows: record.options.map((name) => ({
       name,
       original: name,
+      extra: record.extraOptions?.includes(name) || false,
+      extraPrice: record.extraPrices?.[name] || 0,
       hex: colorHex(name, record.swatches?.[name]),
       photos: [...(record.photos?.[name] || [])].filter((image) =>
         images.includes(image),
@@ -121,6 +132,11 @@ export function readEditedGroup() {
     name: edit.name,
     kind: edit.kind,
     linkPhotos: edit.linkPhotos === true,
+    allowExtras: edit.kind === "placement" && edit.allowExtras === true,
+    extraOptions: edit.rows.filter((row) => row.extra).map((row) => row.name),
+    extraPrices: Object.fromEntries(
+      edit.rows.map((row) => [row.name, row.extraPrice || 0]),
+    ),
     options: names,
     swatches: Object.fromEntries(edit.rows.map((row) => [row.name, row.hex])),
     photos: Object.fromEntries(edit.rows.map((row) => [row.name, row.photos])),
@@ -176,7 +192,9 @@ export function editorChange(target, modal) {
     else picker.selected.delete(image);
     return true;
   }
-  if (target.matches("[data-rich-kind],[data-link-photos]")) {
+  if (
+    target.matches("[data-rich-kind],[data-link-photos],[data-allow-extras]")
+  ) {
     readRows();
     draw(modal);
     return true;

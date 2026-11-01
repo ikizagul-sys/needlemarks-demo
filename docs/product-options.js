@@ -1,4 +1,4 @@
-import { colorHex, validHex } from "./variation-media.js?v=add7483aa78d";
+import { colorHex, validHex } from "./variation-media.js?v=196d1669caaa";
 // Shared by the storefront, demo and SQLite server.
 const fail = (message) => {
   throw new Error(message);
@@ -76,6 +76,23 @@ export function normalizeOptions(product) {
     id: text(group.id, 80),
     name: text(group.name, 80),
     options: choices(group.options),
+    allowExtras: group.kind === "placement" && group.allowExtras === true,
+    extraOptions: (() => {
+      const options = group.extraOptions ?? [];
+      if (
+        !Array.isArray(options) ||
+        options.some((value) => !group.options.includes(value)) ||
+        new Set(options).size !== options.length
+      )
+        fail("Ek nakış konumlarını kontrol et.");
+      return options;
+    })(),
+    extraPrices: Object.fromEntries(
+      (group.options || []).map((value) => [
+        value,
+        number(group.extraPrices?.[value] ?? 0, 0, 100000000),
+      ]),
+    ),
     linkPhotos: group.linkPhotos === true,
     swatches: Object.fromEntries(
       (group.options || []).map((value) => {
@@ -227,17 +244,58 @@ export function selectedVariant(product, selected = {}) {
     stock = attribute("stock", row?.stock ?? product.stock),
     sku = attribute("sku", product.sku || ""),
     processing = attribute("processing", product.processingProfile || "");
+  const extras = selected?.$extras ?? {};
+  if (!extras || typeof extras !== "object" || Array.isArray(extras))
+    fail("Ek nakış seçimlerini kontrol et.");
+  let extrasPrice = 0;
+  const extraSelections = [];
+  for (const [id, choices] of Object.entries(extras)) {
+    const group = (product.variations || []).find((group) => group.id === id);
+    if (
+      !group?.allowExtras ||
+      group.kind !== "placement" ||
+      !Array.isArray(choices) ||
+      new Set(choices).size !== choices.length ||
+      choices.some(
+        (value) =>
+          !group.extraOptions?.includes(value) || value === selected[id],
+      )
+    )
+      fail("Geçersiz veya tekrarlanan ek nakış konumu.");
+    for (const value of group.extraOptions.filter((value) =>
+      choices.includes(value),
+    )) {
+      const fee = group.extraPrices?.[value] ?? 0;
+      extrasPrice += fee;
+      extraSelections.push({
+        name: "Ek nakış · " + group.name,
+        value:
+          value +
+          " (+" +
+          new Intl.NumberFormat("tr-TR", {
+            style: "currency",
+            currency: "TRY",
+          }).format(fee / 100) +
+          ")",
+      });
+    }
+  }
   return {
     key,
-    price: price.value,
+    price: price.value + extrasPrice,
+    basePrice: price.value,
+    extrasPrice,
     stock: Math.min(product.stock, stock.value),
     stockKey: stock.key,
     sku: sku.value,
     processingProfile: processing.value,
-    selections: (product.variations || []).map((group, i) => ({
-      name: group.name,
-      value: values[i],
-    })),
+    selections: [
+      ...(product.variations || []).map((group, i) => ({
+        name: group.name,
+        value: values[i],
+      })),
+      ...extraSelections,
+    ],
   };
 }
 export function scopeCombinations(groups, scope) {

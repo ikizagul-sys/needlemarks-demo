@@ -1,4 +1,4 @@
-import { colorHex, variantPhotos } from "./variation-media.js?v=add7483aa78d";
+import { colorHex, variantPhotos } from "./variation-media.js?v=196d1669caaa";
 import {
   openGroupEditor,
   readEditedGroup,
@@ -7,14 +7,14 @@ import {
   editorChange,
   editorInput,
   editorDrag,
-} from "./variation-editor.js?v=add7483aa78d";
+} from "./variation-editor.js?v=196d1669caaa";
 import {
   fieldsFor,
   combinations,
   variantKey,
   normalizeOptions,
   scopeCombinations,
-} from "./product-options.js?v=add7483aa78d";
+} from "./product-options.js?v=196d1669caaa";
 const esc = (value) =>
   String(value ?? "").replace(
     /[&<>"']/g,
@@ -522,12 +522,21 @@ function shirtSVG(marker) {
     [x, y] = points[marker] || points.front;
   return `<svg class="placement-shirt" viewBox="0 0 120 120" aria-hidden="true"><path d="M43 15 21 24 9 48 30 58 35 47 35 105 85 105 85 47 90 58 111 48 99 24 77 15C72 30 48 30 43 15Z" fill="${marker === "back" ? "#ecebe6" : "#faf9f5"}" stroke="currentColor" stroke-width="2"/><path d="M45 16Q60 39 75 16" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="${x}" cy="${y}" r="13" fill="#536751" opacity=".15"/><circle cx="${x}" cy="${y}" r="5" fill="#536751"/>${marker === "back" ? '<text x="60" y="93" text-anchor="middle" font-size="9" fill="currentColor">ARKA</text>' : ""}</svg>`;
 }
+function extraLocations(group) {
+  if (!group.allowExtras || !group.extraOptions?.length) return "";
+  const money = (value) =>
+    new Intl.NumberFormat("tr-TR", {
+      style: "currency",
+      currency: "TRY",
+    }).format(value / 100);
+  return `<div class="extra-embroidery"><h4>Ek nakış ister misin?</h4><p>İsteğe bağlı. Seçtiğin konumların ücreti her ürün için eklenir.</p>${group.extraOptions.map((value) => `<label class="extra-embroidery-choice"><input type="checkbox" name="extra-${esc(group.id)}" value="${esc(value)}" data-extra-location="${esc(group.id)}"><span>${esc(value)}</span><strong>${group.extraPrices?.[value] ? "+" + money(group.extraPrices[value]) : "Ücretsiz"}</strong></label>`).join("")}</div>`;
+}
 function customerGroup(group) {
   if (group.kind === "color")
     return `<fieldset class="color-variation"><legend>${esc(group.name)} <span class="required-mark">*</span></legend><div class="color-swatch-list">${group.options.map((value) => `<label class="color-swatch-choice"><input type="radio" name="variation-${esc(group.id)}" value="${esc(value)}" data-customer-variation required><span><i style="background:${colorHex(value, group.swatches?.[value])}"></i><strong>${esc(value)}</strong><small data-option-stock></small></span></label>`).join("")}</div></fieldset>`;
 
   if (group.kind === "placement")
-    return `<fieldset class="placement-fieldset"><legend>${esc(group.name)} <span class="required-mark">*</span></legend><p class="field-hint">Nakışın yapılmasını istediğin yeri seç.</p><div class="placement-grid">${group.options.map((value) => `<label class="placement-choice"><input type="radio" name="variation-${esc(group.id)}" value="${esc(value)}" data-customer-variation required><span>${shirtSVG(group.markers?.[value] || infer(value))}<strong>${esc(value)}</strong></span></label>`).join("")}</div></fieldset>`;
+    return `<fieldset class="placement-fieldset"><legend>${esc(group.name)} <span class="required-mark">*</span></legend><p class="field-hint">Önce ana nakış konumunu seç.</p><div class="placement-grid">${group.options.map((value) => `<label class="placement-choice"><input type="radio" name="variation-${esc(group.id)}" value="${esc(value)}" data-customer-variation required><span>${shirtSVG(group.markers?.[value] || infer(value))}<strong>${esc(value)}</strong></span></label>`).join("")}</div>${extraLocations(group)}</fieldset>`;
   return `<label>${esc(group.name)} <span class="required-mark">*</span><select name="variation-${esc(group.id)}" data-customer-variation required><option value="">Seçim yap</option>${group.options.map((value) => `<option>${esc(value)}</option>`).join("")}</select></label>`;
 }
 
